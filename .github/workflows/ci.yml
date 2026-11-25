@@ -145,6 +145,10 @@ jobs:
     permissions:
       contents: read
       packages: read
+    env:
+      # GitHub setzt HOME im Container auf /github/home (gehört uid 1001). Firefox läuft im
+      # Container als root und verweigert dann den Start – darum ein eigenes HOME für root.
+      HOME: /root
     container:
       image: ${{ needs.image.outputs.image }}
       credentials:
