@@ -1,0 +1,2 @@
+selenium>=4.11        # bringt Selenium Manager mit (lädt geckodriver automatisch)
+cryptography>=41      # selbstsigniertes Zertifikat für den HTTPS-Testserver

@@ -1,0 +1,261 @@
+/* Cookie Curator – Tab „Funktionsweise“
+ * Teil A: Grundlagen zu Cookies und Website-Daten (für Einsteiger)
+ * Teil B: Wie dieses Add-on funktioniert
+ */
+(function (root) {
+  "use strict";
+
+  function buildHelp() {
+    const { el } = UI;
+    const P = (...k) => el("p", {}, ...k);
+    const C = t => el("code", {}, t);
+    const B = t => el("b", {}, t);
+    const UL = (...items) => el("ul", {}, items.map(i => el("li", {}, ...[].concat(i))));
+    const OL = (...items) => el("ol", {}, items.map(i => el("li", {}, ...[].concat(i))));
+    const PRE = t => el("pre", { class: "codeblock" }, t);
+    const NOTE = (...k) => el("div", { class: "callout" }, ...k);
+    const TABLE = (head, rows) => el("div", { class: "table-scroll help-table" }, el("table", { class: "grid" },
+      el("thead", {}, el("tr", {}, head.map(h => el("th", {}, h)))),
+      el("tbody", {}, rows.map(r => el("tr", {}, r.map(c => el("td", {}, ...[].concat(c))))))));
+    const chapters = [];
+    const CH = (id, title, ...content) => { chapters.push([id, title]); return el("section", { class: "help-chapter", id: "h-" + id }, el("h3", {}, title), ...content); };
+
+    /* ================================================================ */
+    /* Teil A – Grundlagen                                               */
+    /* ================================================================ */
+
+    const partA = [
+      CH("overview", "Kurz gesagt",
+        P("Wenn du eine Webseite besuchst, darf sie im Browser Daten ablegen und später wieder lesen. Damit merkt sie sich zum Beispiel, ",
+          "dass du eingeloggt bist, welche Sprache du gewählt hast oder was im Warenkorb liegt. Dieselbe Technik wird aber auch genutzt, ",
+          "um dich wiederzuerkennen und dein Verhalten über Besuche und Seiten hinweg zu verfolgen (Tracking)."),
+        P("Firefox unterscheidet zwei Gruppen, und dieses Add-on übernimmt die Einteilung:"),
+        UL([B("Cookies"), " – kleine Textwerte, die der Browser bei jeder Anfrage automatisch an die Webseite mitschickt."],
+           [B("Website-Daten"), " – alles andere, was eine Seite lokal speichert: localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker und der HTTP-Cache. Diese Daten werden nicht automatisch mitgeschickt; die Seite liest sie mit JavaScript selbst aus."]),
+        NOTE(B("Wichtig: "), "Weder Cookies noch Website-Daten können Programme auf deinem Computer ausführen oder Dateien lesen. ",
+          "Sie sind reine Daten, die nur die Webseite lesen kann, die sie angelegt hat. Das Datenschutz-Thema ist das Wiedererkennen, nicht ein Virus.")),
+
+      CH("terms", "Begriffe vorab: Origin, Host, Domain, Seite",
+        P("Wer welche Daten lesen darf, hängt an der Adresse. Am Beispiel ", C("https://shop.example.co.uk:443/warenkorb"), ":"),
+        TABLE(["Begriff", "Beispiel", "Bedeutung"], [
+          ["Protokoll", C("https"), "Verschlüsselt (https) oder nicht (http)."],
+          ["Host", C("shop.example.co.uk"), "Der vollständige Rechnername. Subdomains wie „shop“ gehören dazu."],
+          ["Origin", C("https://shop.example.co.uk:443"), "Protokoll + Host + Port. Website-Daten gehören immer genau einem Origin."],
+          ["Domain (Cookie)", C(".example.co.uk"), "Cookies können für eine ganze Domain inkl. aller Subdomains gelten."],
+          ["Seite (eTLD+1)", C("example.co.uk"), "„Registrierbare Domain“: was man bei einem Anbieter kauft. Das Add-on fasst alles darunter als eine Seite zusammen."],
+          ["Public Suffix", C("co.uk"), "Endung, unter der jeder registrieren kann (wie .ch, .com, co.uk, github.io)."]]),
+        UL([B("Erstanbieter (First Party)"), ": die Seite, die in der Adresszeile steht."],
+           [B("Drittanbieter (Third Party)"), ": alles, was diese Seite zusätzlich einbindet – Werbung, Analytics, eingebettete Videos, Like-Buttons. Diese Inhalte kommen von anderen Domains und können eigene Cookies und Daten anlegen."])),
+
+      CH("cookies", "Cookies – wie sie funktionieren",
+        P("Ein Cookie ist ein Paar aus ", B("Name"), " und ", B("Wert"), " plus ein paar Regeln, wann und wohin der Browser es zurückschickt. Der Ablauf:"),
+        OL(["Du rufst eine Seite auf. Der Server antwortet und hängt eine Zeile ", C("Set-Cookie"), " an."],
+           ["Firefox speichert das Cookie für diese Domain."],
+           ["Bei jeder weiteren Anfrage an diese Domain schickt Firefox das Cookie automatisch in der Zeile ", C("Cookie"), " mit – auch für Bilder und Skripte."],
+           ["Seiten können Cookies zusätzlich per JavaScript lesen und setzen (", C("document.cookie"), "), ausser das Cookie ist HttpOnly."]),
+        PRE("Antwort des Servers:\n" +
+            "  Set-Cookie: session=8f3a9c2e71; Path=/; Secure; HttpOnly; SameSite=Lax\n" +
+            "  Set-Cookie: lang=de-CH; Max-Age=31536000; Path=/\n\n" +
+            "Nächste Anfrage des Browsers:\n" +
+            "  Cookie: session=8f3a9c2e71; lang=de-CH"),
+        P("Damit „erinnert“ sich der Server an dich: Er hat dir eine Nummer gegeben (", C("session=8f3a9c2e71"), "), und du zeigst sie bei jedem Klick wieder vor. ",
+          "Der Server weiss dann, zu welchem Login oder Warenkorb diese Nummer gehört. Der eigentliche Inhalt (dein Konto, dein Warenkorb) liegt meist auf dem Server, im Cookie steht nur der Schlüssel dazu.")),
+
+      CH("cookieattrs", "Cookies – Eigenschaften (Attribute)",
+        P("Jedes Cookie hat neben Name und Wert einige Eigenschaften. In der Cookie-Tabelle des Add-ons siehst du sie in den Spalten und als kleine Kürzel unter „Flags“:"),
+        TABLE(["Eigenschaft", "Im Add-on", "Bedeutung", "Beispiel"], [
+          ["Name / Wert", "Name, Detailansicht", "Der eigentliche Inhalt. Nur Text; Sonderzeichen werden oft kodiert (%3A = „:“).", C("lang=de-CH")],
+          ["Domain", "Domain", "Für welche Domain das Cookie gilt. Mit führendem Punkt auch für alle Subdomains.", C(".example.com")],
+          ["Host-only", "Host", "Kein Domain-Attribut gesetzt: gilt nur für exakt diesen Host, nicht für Subdomains.", C("www.example.com")],
+          ["Path", "Pfad", "Nur für Adressen unterhalb dieses Pfads.", C("/shop")],
+          ["Expires / Max-Age", "Ablauf", "Wann das Cookie verfällt (Max-Age in Sekunden). Ohne Angabe ist es ein Sitzungscookie.", C("Max-Age=31536000")],
+          ["Secure", "Sec", "Wird nur über verschlüsselte Verbindungen (https) gesendet.", ""],
+          ["HttpOnly", "HO", "Für JavaScript der Seite unsichtbar. Schützt Login-Cookies vor Diebstahl durch eingeschleuste Skripte.", ""],
+          ["SameSite", "SS:L / SS:S / SS:N", "Ob das Cookie mitgeschickt wird, wenn die Anfrage von einer fremden Seite ausgelöst wird: Strict = nie, Lax = nur beim normalen Anklicken eines Links, None = immer (dann muss es Secure sein).", C("SameSite=Lax")],
+          ["Partitioned", "Part, 3P", "Das Cookie ist an die Seite gebunden, auf der es eingebettet war (siehe Drittanbieter).", ""],
+          ["Präfix __Host- / __Secure-", "(im Namen)", "Browser erzwingt Secure (und bei __Host- auch Host-only, Pfad /). Typisch für sicherheitsrelevante Cookies.", C("__Host-session")]]),
+        el("h4", {}, "Sitzungscookie oder dauerhaftes Cookie"),
+        UL([B("Sitzungscookie"), " (Ablauf „Sitzung“): verschwindet, wenn die Browsersitzung endet. Achtung: Stellt Firefox beim Start die letzte Sitzung wieder her, bleiben auch Sitzungscookies erhalten."],
+           [B("Dauerhaftes Cookie"), ": bleibt bis zum Ablaufdatum. In Firefox 140 höchstens ", B("400 Tage"), " – längere Angaben kürzt Firefox (gemessen)."]),
+        el("h4", {}, "Grenzen in Firefox (gemessen mit Firefox 140)"),
+        UL(["Ein Cookie (Name + Wert) darf höchstens etwa ", B("4 KB"), " gross sein; grössere werden verworfen."],
+           ["Pro Host behält Firefox nur eine begrenzte Anzahl. Im Test blieben von 400 gesetzten Cookies ", B("153"), " übrig – die ältesten fliegen zuerst raus."],
+           ["Cookies werden bei jeder Anfrage mitgeschickt. Viele grosse Cookies machen jede Anfrage langsamer – darum nutzen moderne Seiten für grössere Daten die Website-Daten."])),
+
+      CH("thirdparty", "Erstanbieter-, Drittanbieter- und partitionierte Cookies",
+        P("Bettet ", C("news.ch"), " ein Werbe-Skript von ", C("ads.example"), " ein, kann ", C("ads.example"), " ein eigenes Cookie setzen. ",
+          "Früher bekam es auf jeder Seite mit diesem Werbe-Skript dasselbe Cookie zurück – so entstand seitenübergreifendes Tracking."),
+        P("Firefox verhindert das heute mit ", B("Total Cookie Protection"), " (vollständiger Cookie-Schutz): Jede besuchte Seite bekommt eine eigene „Cookie-Dose“. ",
+          C("ads.example"), " auf ", C("news.ch"), " sieht andere Cookies als ", C("ads.example"), " auf ", C("shop.ch"), ". Diese Cookies heissen ", B("partitioniert"), "."),
+        UL(["Im Add-on erscheinen partitionierte Drittanbieter-Cookies unter der Seite, auf der sie entstanden sind, markiert mit ", el("span", { class: "badge c-3p" }, "3P"), " und dem Flag ", C("Part"), "."],
+           ["Wichtig: Viele Tracker setzen ihre Cookies inzwischen als ", B("Erstanbieter-Cookies"), " (z. B. Google Analytics mit ", C("_ga"), "). Die sind von Total Cookie Protection nicht betroffen – genau dafür sind die Tracking-Kategorie und deine Regeln da."])),
+
+      CH("cookievalues", "Was in Cookies steht – typische Beispiele",
+        P("Der Wert ist für Menschen meist unlesbar. Häufige Formen: zufällige ID (", C("a8f3c1…"), "), Zahl mit Zeitstempel (", C("GA1.2.1234567.1700000000"), "), ",
+          "kodierter Text (", C("groups=C0001%3A1%2CC0002%3A0"), "), Base64 oder ein signiertes Token (JWT, beginnt mit ", C("eyJ"), ")."),
+        TABLE(["Cookie (Beispiel)", "Zweck", "Kategorie im Add-on", "Wenn gelöscht …"], [
+          [[C("PHPSESSID"), " ", C("JSESSIONID"), " ", C("session")], "Sitzungsnummer: ordnet dich deinem Login/Warenkorb auf dem Server zu", el("span", { class: "badge c-auth" }, "Login/Session"), "du bist ausgeloggt, Warenkorb evtl. leer"],
+          [[C("remember_token"), " ", C("logged_in")], "„Angemeldet bleiben“", el("span", { class: "badge c-auth" }, "Login/Session"), "nach Browser-Neustart erneut einloggen"],
+          [[C("csrftoken"), " ", C("XSRF-TOKEN")], "Schutz vor gefälschten Formular-Absendungen", el("span", { class: "badge c-auth" }, "Login/Session"), "Formular schlägt einmal fehl, Seite neu laden hilft"],
+          [[C("OptanonConsent"), " ", C("euconsent-v2"), " ", C("CookieConsent")], "Deine Auswahl im Cookie-Banner", el("span", { class: "badge c-consent" }, "Consent"), "Cookie-Banner erscheint wieder"],
+          [[C("lang"), " ", C("theme")], "Sprache, Dunkelmodus, Region", "keine", "Standardsprache / helles Design"],
+          [[C("_ga"), " ", C("_gid"), " ", C("_fbp"), " ", C("IDE")], "Wiedererkennungs-ID für Statistik und Werbung", el("span", { class: "badge c-tracking" }, "Tracking"), "du wirst als neuer Besucher gezählt – meist erwünscht"],
+          [[C("__cf_bm"), " ", C("cf_clearance")], "Bot-Schutz (Cloudflare)", "keine", "evtl. erneut „Ich bin kein Roboter“"]]),
+        NOTE("Die Kategorien erkennt das Add-on nur am Namen. Unbekannte Namen landen bei „ohne Kategorie“ – im Zweifel die Seite mit gelöschtem Cookie ausprobieren und bei Bedarf eine Behalten-Regel setzen.")),
+
+      CH("webdata", "Website-Daten – die Speicherarten im Überblick",
+        P("Website-Daten gehören immer genau einem ", B("Origin"), " (siehe Begriffe). ", C("www.example.com"), " und ", C("shop.example.com"), " haben getrennte Speicher. ",
+          "Anders als Cookies werden sie nie automatisch an den Server geschickt."),
+        TABLE(["Speicherart", "Was wird gespeichert", "Lebensdauer", "Grösse (Firefox)", "Typische Nutzung"], [
+          [B("localStorage"), "Einträge Name → Text", "dauerhaft, bis gelöscht", "rund 5 MB pro Origin (gemessen)", "Einstellungen, Login-Token in Web-Apps, Entwürfe, Consent-Status, Tracking-IDs"],
+          [B("sessionStorage"), "Einträge Name → Text", "so lange der Tab offen ist (bei Sitzungswiederherstellung auch länger)", "rund 5 MB pro Origin und Tab", "Formular- oder Bestell-Schritt, Scroll-Position, temporäre Zustände"],
+          [B("IndexedDB"), "Datenbanken mit Tabellen (Object Stores) voller Objekte, auch Dateien", "dauerhaft, bis gelöscht", "bis in den GB-Bereich (Anteil am freien Speicher)", "Offline-Mails, Chat-Verläufe, Notizen, Spiele, Warteschlangen für Statistik-Ereignisse"],
+          [B("Cache Storage"), "gespeicherte Antworten (URL → Datei)", "dauerhaft, von der Seite verwaltet", "teilt sich das Kontingent mit IndexedDB", "Offline-Fähigkeit von Web-Apps (PWA): Seiten, Skripte, Bilder"],
+          [B("Service Worker"), "ein Hintergrund-Skript der Seite", "registriert bis abgemeldet", "klein", "Offline-Betrieb, Push-Benachrichtigungen, schnelleres Laden"],
+          [B("HTTP-Cache"), "Kopien geladener Dateien", "vom Browser automatisch verwaltet", "global begrenzt, Firefox räumt selbst", "Bilder, CSS und Skripte nicht jedes Mal neu laden"]]),
+        el("h4", {}, "localStorage und sessionStorage"),
+        P("Beide sind einfache Listen von Einträgen: ein ", B("Name"), " (auch „Schlüssel“ genannt) und ein ", B("Wert"), " (immer Text). ",
+          "Oft steht im Wert ein ganzes JSON-Objekt, zum Beispiel ", C('{"theme":"dark","fontSize":16}'), "."),
+        UL(["Unterschied: localStorage bleibt dauerhaft und gilt für alle Tabs; sessionStorage gehört nur dem einen Tab und verschwindet mit ihm."],
+           ["Manche Seiten speichern den Login nicht im Cookie, sondern als Token im localStorage (häufig bei modernen Web-Apps). Wer dort alles löscht, wird ausgeloggt."],
+           ["Manche Cookie-Banner speichern deine Auswahl ebenfalls im localStorage. Dann erscheint der Banner wieder, obwohl das Consent-Cookie behalten wurde."]),
+        el("h4", {}, "IndexedDB"),
+        P("Eine richtige kleine Datenbank im Browser: Eine Seite kann mehrere ", B("Datenbanken"), " haben, jede mit mehreren ", B("Object Stores"),
+          " (vergleichbar mit Tabellen), darin beliebig viele ", B("Einträge"), " (Objekte, auch Bilder oder Dateien). Web-Mail, Messenger und Office-Apps legen hier ihre Offline-Kopie ab. ",
+          "Löschen ist meist harmlos – die Daten werden beim nächsten Besuch neu vom Server geladen –, kann aber offline gespeicherte, noch nicht synchronisierte Änderungen vernichten."),
+        el("h4", {}, "Cache Storage und Service Worker"),
+        P("Ein ", B("Service Worker"), " ist ein Skript, das eine Seite im Browser registriert. Es sitzt zwischen Seite und Internet, kann Anfragen aus seinem eigenen Speicher, dem ",
+          B("Cache Storage"), ", beantworten und so die Seite offline verfügbar machen oder Push-Nachrichten empfangen. Wird er abgemeldet, registriert die Seite ihn beim nächsten Besuch meist neu."),
+        el("h4", {}, "HTTP-Cache"),
+        P("Der Browser legt geladene Dateien automatisch zwischen, damit die Seite beim nächsten Mal schneller lädt. Die Seite selbst kann ihn nicht auslesen. ",
+          "Firefox trennt auch diesen Cache pro besuchter Seite, damit er nicht zum Wiedererkennen missbraucht werden kann. Löschen macht die nächsten Besuche nur etwas langsamer."),
+        el("h4", {}, "Quota (Kontingent)"),
+        P("Firefox gibt jeder Seite ein Kontingent für IndexedDB, Cache Storage und Co. Wird der Platz knapp, räumt Firefox selbst die am längsten nicht besuchten Seiten. ",
+          "Ausnahme: Eine Seite kann „persistenten Speicher“ anfordern; dann löscht Firefox nur auf deinen Befehl. Das Add-on zeigt beides im Bereich Website-Daten → Inhalt an.")),
+
+      CH("tracking", "Wie Wiedererkennung (Tracking) funktioniert",
+        OL(["Beim ersten Besuch erzeugt ein Skript eine zufällige ID, z. B. ", C("GA1.2.81734612.1761487200"), "."],
+           ["Die ID wird in einem Cookie und/oder im localStorage abgelegt."],
+           ["Bei jedem weiteren Besuch liest das Skript die ID und schickt sie mit jedem Seitenaufruf, Klick und Kauf an den Statistik- oder Werbedienst."],
+           ["Der Dienst verknüpft alles, was zu dieser ID gehört, zu einem Profil – über Tage, Monate und, bei Drittanbietern ohne Schutz, über viele Seiten."]),
+        P("Wird die ID gelöscht, bist du für den Dienst ein neuer Besucher. Darum wirkt das regelmässige Löschen von Tracking-Cookies und -Einträgen, ohne dass du dich überall neu einloggen musst."),
+        NOTE(B("Grenzen: "), "Es gibt Wiedererkennung ohne gespeicherte Daten – über deine IP-Adresse, ein Login (wer eingeloggt ist, ist bekannt) oder ",
+          "„Fingerprinting“ (Merkmale wie Bildschirmgrösse, Schriften, Grafikkarte). Dagegen hilft dieses Add-on nicht; Firefox hat dafür eigene Schutzfunktionen im Verbesserten Schutz vor Aktivitätenverfolgung.")),
+
+      CH("practice", "Was soll ich behalten, was löschen?",
+        TABLE(["Ziel", "Behalten", "Löschen / Blockieren"], [
+          ["Eingeloggt bleiben", ["Kategorie ", B("Login/Session"), "; bei Web-Apps zusätzlich localStorage (oder die Login-Einträge per Eintragsregel)"], "—"],
+          ["Cookie-Banner nicht ständig sehen", ["Kategorie ", B("Consent"), "; bei manchen Bannern auch deren localStorage-Eintrag"], "—"],
+          ["Tracking reduzieren", "—", ["Kategorie ", B("Tracking"), " löschen oder blockieren; localStorage-Einträge wie ", C("_ga*"), ", ", C("amplitude*"), " per Eintragsregel"]],
+          ["Web-App offline nutzen (Mail, Notizen)", "IndexedDB, Cache Storage, Service Worker", "—"],
+          ["Seite „wie neu“, z. B. bei Fehlern", "—", ["in der Seite: Cookies ", B("Alle löschen"), " und Website-Daten ", B("Alle löschen")]],
+          ["Maximaler Datenschutz", "nur ausgewählte Seiten (Whitelist)", ["Einstellungen: Standard für übrige Cookies = Löschen, Website-Daten = Löschen; für vertraute Seiten Ausnahmen setzen"]]]),
+        NOTE("Tipp: Vor grösseren Änderungen Cookies archivieren (Auswahl → Archivieren). Geht etwas schief, holst du sie mit einem Klick zurück. Einstellungen lassen sich mit ↶ rückgängig machen.")),
+
+      CH("glossary", "Glossar",
+        el("dl", { class: "glossary" }, [
+          ["Cookie", "Kleiner Textwert (Name=Wert), den der Browser bei Anfragen an die zugehörige Domain automatisch mitschickt."],
+          ["Website-Daten", "Alle anderen lokalen Speicher einer Seite: localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker, HTTP-Cache."],
+          ["Eintrag", "Ein Name-Wert-Paar in localStorage oder sessionStorage."],
+          ["Eintragsregel", "Regel im Add-on, die einzelne Einträge in localStorage/sessionStorage behält oder löscht."],
+          ["Origin", "Protokoll + Host + Port, z. B. https://www.example.com. Grenze für Website-Daten."],
+          ["Seite (eTLD+1)", "Registrierbare Domain, z. B. example.com. So gruppiert das Add-on."],
+          ["Erst-/Drittanbieter", "Daten der Seite in der Adresszeile bzw. von eingebetteten fremden Inhalten."],
+          ["Partitioniert", "Daten sind an die Seite gebunden, auf der sie entstanden sind (Total Cookie Protection, CHIPS)."],
+          ["Sitzungscookie", "Cookie ohne Ablaufdatum; endet mit der Browsersitzung."],
+          ["HttpOnly", "Cookie ist für JavaScript unsichtbar."],
+          ["SameSite", "Regelt, ob ein Cookie bei Anfragen von fremden Seiten mitgeht."],
+          ["Consent", "Deine Einwilligung im Cookie-Banner; wird selbst wieder in einem Cookie oder localStorage gespeichert."],
+          ["Container", "Firefox-Funktion für getrennte Identitäten (z. B. Arbeit/Privat) mit eigenen Cookies im selben Fenster."],
+          ["Quota", "Speicher-Kontingent, das Firefox einer Seite für Website-Daten zugesteht."],
+          ["JWT / Token", "Signierte Zeichenkette (beginnt oft mit eyJ), die einen Login belegt."]
+        ].map(([t, d]) => [el("dt", {}, t), el("dd", {}, d)])))
+    ];
+
+    const tocA = chapters.slice();
+    chapters.length = 0;
+
+    /* ================================================================ */
+    /* Teil B – Dieses Add-on                                            */
+    /* ================================================================ */
+
+    const partB = [
+      CH("structure", "Aufbau pro Seite",
+        UL([B("Allgemein"), ": Bereinigen bei Tab-Schliessen und Notiz – gilt für Cookies und Website-Daten."],
+           [B("Cookies"), ": Richtlinie → Inhalt → Cookie-Regeln → Cookie-Archiv."],
+           [B("Website-Daten"), ": Richtlinie → Inhalt → Eintragsregeln."],
+           [B("Alles löschen"), " (im Bereich Allgemein und in der Seitenübersicht): entfernt Cookies, alle Website-Daten, die gemerkten Hosts und die Konfiguration der Seite. Danach verschwindet sie aus der Übersicht, bis sie wieder etwas speichert. Die Konfiguration holt ↶ zurück, die Daten nicht."],
+           [B("Tabellen"), ": Spaltenbreiten am rechten Rand eines Spaltenkopfs ziehen; Doppelklick dort setzt zurück. Breite Tabellen bekommen eine eigene horizontale Scrollbar. Lange Werte enden mit „…“ – voller Wert im Tooltip oder per „Kopieren“."]),
+        P("Jedes Cookie wird einer Seite (eTLD+1) zugeordnet: ", C(".login.example.co.uk"), " → ", C("example.co.uk"),
+          ". Partitionierte Drittanbieter-Cookies gehören zur Seite, auf der sie entstanden sind, und tragen ", C("3P"), ".")),
+
+      CH("decision", "Entscheidung pro Cookie",
+        P("Die erste Stufe, die zutrifft, entscheidet:"),
+        OL([B("Cookie-Regeln der Seite"), " – geordnete Liste, inkl. Schnellregeln aus der Cookie-Tabelle (exakter Name)."],
+           [B("Globale Cookie-Regeln"), " – gleiche Syntax, für alle Seiten."],
+           [B("Kategorie"), " – Consent / Tracking / Login über Namensmuster; Aktion pro Seite übersteuerbar."],
+           [B("Standard der Seite"), " – Behalten oder Löschen."],
+           [B("Globaler Standard"), "."]),
+        P("Die Spalte ", el("i", {}, "Ergebnis"), " zeigt das Resultat, die Spalte ", el("i", {}, "Begründung"), " (bzw. der Tooltip) die Stufe, die entschieden hat."),
+        UL([el("span", { class: "pill a-keep" }, "Behalten"), " – bleibt bei allen Bereinigungen erhalten."],
+           [el("span", { class: "pill a-delete" }, "Löschen"), " – wird bei der nächsten Bereinigung entfernt (Tab zu, Start, Intervall, manuell)."],
+           [el("span", { class: "pill a-block" }, "Blockieren"), " – wird sofort nach dem Setzen gelöscht. Die Seite sieht das Cookie für Bruchteile einer Sekunde; ein Filter vor dem Setzen ist das nicht."])),
+
+      CH("webdatamodes", "Website-Daten im Add-on",
+        UL(["Pro Seite und global: ", B("Behalten"), " oder ", B("Löschen"), " (ganze Speicherart bei jeder Bereinigung). localStorage und sessionStorage zusätzlich ", B("Selektiv"), ": einzelne Einträge nach Eintragsregeln, sonst gilt „Standard für übrige Einträge“."],
+           ["Selektiv wirkt beim Laden der Seite (bevor deren Skripte laufen) und per Knopf „Eintragsregeln anwenden“ in offenen Tabs. Nach dem Schliessen eines Tabs kommt keine Erweiterung mehr an einzelne Einträge."],
+           [B("Wozu Regeln für sessionStorage?"), " Meist unnötig – sessionStorage verschwindet, wenn der Tab geschlossen wird. Sinnvoll ist es nur in drei Fällen: ",
+            "(1) Firefox stellt beim Start die letzte Sitzung wieder her und bringt dabei auch den sessionStorage der Tabs zurück; ",
+            "(2) Tabs, die tagelang offen bleiben (Webmail, Chat); (3) „Tab duplizieren“ kopiert den sessionStorage. ",
+            "Standard ist darum „Behalten“; einfach so lassen, wenn dich das nicht betrifft."],
+           ["Firefox löscht Website-Daten nur für ", el("i", {}, "exakte"), " Hosts. Das Add-on merkt sich alle besuchten Hosts einer Seite (inkl. Cookie-Domains). Subdomains, die nie als Tab offen waren (z. B. reine iframes), werden nicht erfasst."],
+           ["Cache Storage kann Firefox für Erweiterungen nicht pro Host löschen. Das Add-on löscht ihn deshalb sofort in offenen Tabs der Seite und sonst beim nächsten Aufruf, bevor die Seite ihre Skripte startet. Beim HTTP-Cache leert Firefox bei manchen Cache-Arten den gesamten Cache."],
+           ["Inhalt-Ansicht (bei offenem Tab): Einträge, Datenbanken mit Object Stores, Caches mit URLs, Service Worker mit Status, Quota. Auf geschützten Seiten wie addons.mozilla.org nicht möglich."],
+           ["Datenbank löschen, während die Seite sie offen hält: Firefox meldet „blockiert“ und löscht, sobald die Seite sie schliesst (spätestens beim Neuladen)."])),
+
+      CH("archive", "Löschen, archivieren, zurückholen (Cookies)",
+        UL(["In der Cookie-Tabelle Häkchen setzen → ", B("Archivieren"), ", ", B("Archivieren + löschen"), " oder ", B("Löschen"), ". Einzelne Cookies auch über die Detailansicht (Klick auf den Namen)."],
+           ["Das Archiv speichert pro Cookie mehrere Versionen (Wert, Ablauf, Eigenschaften, Container, Partition). Identische Versionen werden nicht doppelt abgelegt."],
+           [B("Zurückholen"), " setzt das Cookie exakt auf den archivierten Stand – auch wenn es gerade existiert."],
+           [B("⟲ Autostart"), ": diese Version wird bei jedem Browserstart nach der Start-Bereinigung gesetzt. Damit sie danach bleibt, eine Behalten-Regel setzen."])),
+
+      CH("undo", "Rückgängig / Wiederholen",
+        UL(["Knöpfe ↶ / ↷ oben rechts im Dashboard und im Popup, oder ", C("Strg+Z"), " / ", C("Strg+Y"), " (", C("Strg+Umschalt+Z"), "), solange kein Textfeld aktiv ist."],
+           ["Erfasst jede Änderung der Konfiguration: Richtlinien, Schnellregeln, Regeln, Kategorien, Einstellungen, Import und Zurücksetzen. Bis 100 Schritte, auch über Neustarts."],
+           ["Nicht erfasst: gelöschte Cookies und Website-Daten, Archiv, Protokoll. Gelöschte Cookies lassen sich nur über das Archiv zurückholen."])),
+
+      CH("rulefields", "Regel-Felder",
+        UL([C("Typ"), ": exakt | glob (", C("*"), " beliebig viele Zeichen, ", C("?"), " genau eines; Gross/Klein egal) | regex (", C("/^wp_.*$/i"), ")."],
+           [C("Name"), ": Cookie-Name bzw. Name des Eintrags."],
+           ["Cookie-Regeln zusätzlich: ", C("Domain"), " (Glob, z. B. ", C("*.example.com"), "), ", C("Pfad"), " (z. B. ", C("/admin*"), "), ", C("Container"), "."],
+           ["Eintragsregeln zusätzlich: ", C("Speicher"), " (localStorage, sessionStorage oder beide)."],
+           ["Reihenfolge = Priorität; mit ▲▼ verschieben. Die Spalte Treffer zeigt, wie viele aktuelle Cookies bzw. Einträge die Regel erfasst."])),
+
+      CH("setup", "Empfohlener Einstieg",
+        OL(["Einstellungen → Cookies: Standard für übrige Cookies vorerst auf ", B("Behalten"), " lassen."],
+           ["Cookie-Kategorien: Consent und Login auf Behalten, Tracking auf Löschen (Standard)."],
+           ["Ein paar Tage normal surfen, dann im Dashboard „Alles bereinigen – Vorschau“ ansehen."],
+           ["Wenn alles passt: Standard für übrige Cookies auf ", B("Löschen"), " (Whitelist-Betrieb). Wo der Login verloren geht, im Popup das Login-Cookie per Schnellregel auf Behalten setzen."],
+           ["Website-Daten: für Seiten mit Tracking im localStorage den Modus Selektiv mit Eintragsregeln nutzen; für Web-Apps alles behalten."])),
+
+      CH("limits", "Grenzen",
+        UL(["Die Kategorien (Consent, Login, Tracking) werden nur am Namen erkannt. Unübliche Namen brauchen eine eigene Regel."],
+           ["„Blockieren“ löscht direkt nach dem Setzen; die Seite kann das Cookie für einen Moment lesen."],
+           ["Die Liste der Public Suffixes ist kompakt; für seltene Endungen unter Einstellungen → Erweitert ergänzen."],
+           ["Wiedererkennung ohne gespeicherte Daten (IP-Adresse, Fingerprinting) kann ein Speicher-Add-on nicht verhindern."]))
+    ];
+    const tocB = chapters.slice();
+
+    const toc = (title, list) => el("div", { class: "toc-col" }, el("b", {}, title),
+      el("ol", {}, list.map(([id, t]) => el("li", {}, el("a", { href: "#", onclick: e => { e.preventDefault(); document.getElementById("h-" + id).scrollIntoView({ behavior: "smooth", block: "start" }); } }, t)))));
+
+    return el("div", { class: "help" },
+      el("div", { class: "card toc" }, toc("A · Dieses Add-on", tocB), toc("B · Grundlagen: Cookies und Website-Daten", tocA)),
+      el("div", { class: "card" }, el("h2", {}, "A · Wie dieses Add-on funktioniert"),
+        el("p", { class: "hint" }, "Neu bei Cookies und Website-Daten? Teil B erklärt die Grundlagen."), ...partB),
+      el("div", { class: "card" }, el("h2", {}, "B · Grundlagen: Cookies und Website-Daten"),
+        el("p", { class: "hint" }, "Für alle, die verstehen möchten, was Webseiten im Browser speichern und warum."), ...partA));
+  }
+
+  root.buildHelp = buildHelp;
+})(typeof self !== "undefined" ? self : this);

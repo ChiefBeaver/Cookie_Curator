@@ -1,0 +1,5 @@
+# Zeilenenden im Repository immer LF; Windows-Checkouts bekommen CRLF nur, wo Git es so eingestellt hat
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.xpi binary

@@ -1,0 +1,14 @@
+# Abhängigkeiten und Ergebnisse der Tests
+tests/node_modules/
+tests/output/
+__pycache__/
+*.pyc
+.venv/
+
+# Build-Ergebnis (mit tools/build_xpi.py neu erzeugen)
+*.xpi
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+desktop.ini

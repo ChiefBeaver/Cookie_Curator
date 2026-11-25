@@ -1,0 +1,77 @@
+body { padding: 0 0 40px; }
+header.top {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 20px;
+}
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand img { width: 24px; height: 24px; }
+.brand h1 { font-size: 16px; }
+nav { display: flex; gap: 2px; flex-wrap: wrap; }
+nav a { text-decoration: none; color: var(--dim); padding: 5px 10px; border-radius: 5px; }
+nav a:hover { background: var(--panel-2); color: var(--text); }
+nav a.active { background: var(--text); color: var(--bg); }
+main { max-width: 1800px; margin: 0 auto; padding: 16px 20px; }
+.page-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.page-head h2 { font-size: 18px; }
+.page-head h2 code { font-size: 17px; color: var(--accent); }
+.page-head .spacer { flex: 1; }
+
+.overview td.site { font-family: var(--mono); font-weight: 600; cursor: pointer; }
+.overview td.site:hover { color: var(--accent); }
+.overview .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--keep); }
+.overview .n-del { color: var(--del); } .overview .n-block { color: var(--block); } .overview .n-keep { color: var(--keep); }
+.overview .note { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+
+.form-grid { display: grid; grid-template-columns: minmax(220px, 320px) 1fr; gap: 10px 20px; align-items: start; }
+.form-grid > label { padding-top: 4px; font-weight: 500; }
+.form-grid .desc { color: var(--dim); font-size: 11.5px; margin-top: 3px; }
+.form-grid input[type=number] { width: 90px; }
+
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.cat-grid textarea { min-height: 320px; }
+.cat-grid h3 { display: flex; align-items: center; gap: 8px; }
+
+.help h3 { margin: 14px 0 6px; }
+.help p, .help li { max-width: 900px; line-height: 1.55; }
+.help code { background: var(--panel-2); padding: 0 4px; border-radius: 3px; }
+.help ol, .help ul { padding-left: 22px; }
+
+
+/* Funktionsweise */
+.help h2 { font-size: 17px; margin: 0 0 4px; }
+.help-chapter { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 4px; scroll-margin-top: 70px; }
+.help-chapter h4 { margin: 14px 0 4px; font-size: 13px; }
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 24px; }
+.toc ol { margin: 6px 0 0; padding-left: 22px; }
+.toc li { margin: 2px 0; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.codeblock { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-family: var(--mono); font-size: 12px; overflow-x: auto; white-space: pre; max-width: 900px; }
+.callout { background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 3px solid var(--accent); border-radius: 4px; padding: 8px 12px; margin: 10px 0; max-width: 900px; line-height: 1.5; }
+.help-table { max-width: 1200px; margin: 8px 0; }
+.help-table td { white-space: normal; vertical-align: top; line-height: 1.45; }
+.help-table td code { white-space: nowrap; }
+.glossary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; max-width: 1000px; }
+.glossary dt { font-weight: 600; }
+.glossary dd { margin: 0; color: var(--text); }
+
+/* Dashboard-Tabellen: einzeilige Zellen, Spaltenbreiten per Ziehen (ui/tables.js),
+   horizontale Scrollbar, wenn die Tabelle breiter ist als der Platz. Vertikal scrollt die Seite. */
+main .table-scroll { overflow-x: auto; overflow-y: hidden; max-height: none; }
+main .grid thead th { top: 0; }
+main .table-scroll > table.grid { min-width: 100%; }
+main .table-scroll > table.grid > tbody > tr:last-child > td { border-bottom: 0; }
+main .grid td.name, main .grid td.mono { max-width: none; }
+main .grid td.actions { text-align: right; width: 1%; }
+main .grid td.actions .btn + .btn { margin-left: 4px; }
+main .overview td.site .badge { margin-left: 6px; }
+main .help-table { overflow-x: visible; }
+
+.overview td.split, .overview th.split-head { white-space: nowrap; text-align: right; }
+.overview .split .sep, .overview .split-head .sep { color: var(--muted); margin: 0 4px; }
+.overview .split-head .sortable { cursor: pointer; }
+.overview .split-head .sorted { color: var(--text); }
+@media (max-width: 1350px) {
+  main .overview th, main .overview td { padding-left: 4px; padding-right: 4px; }
+  main .overview td.note { min-width: 100px; }
+}
