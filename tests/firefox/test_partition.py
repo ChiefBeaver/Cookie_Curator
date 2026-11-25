@@ -26,7 +26,7 @@ def legacy_key(h):
         with h.drv.context(h.drv.CONTEXT_CHROME):
             h.drv.execute_script('Services.prefs.setBoolPref("privacy.dynamic_firstparty.use_site", true)')
     except WebDriverException as e:
-        raise SkipTest("Chrome-Kontext nicht verfügbar (Firefox ohne -remote-allow-system-access?): " + str(e)[:120])
+        raise SkipTest("Chrome-Kontext nicht verfügbar: " + str(e)[:120])
     h.new_tab(); h.ext("help")
     before = h.js(SNAP)
     h.ext("site/host-a.test", 2)
@@ -57,5 +57,5 @@ def legacy_key(h):
 TESTS = [
     ("Drittanbieter-Cookies der Top-Level-Seite zugeordnet", third_party, {}),
     ("Löschen trotz altem Partitionsschlüssel (Regression 0.6.0)", legacy_key,
-     {"system_access": True, "prefs": {"privacy.dynamic_firstparty.use_site": False, "network.cookie.cookieBehavior": 5}}),
+     {"prefs": {"privacy.dynamic_firstparty.use_site": False, "network.cookie.cookieBehavior": 5}}),
 ]

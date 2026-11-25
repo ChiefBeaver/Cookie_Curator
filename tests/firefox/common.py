@@ -94,14 +94,15 @@ class Servers:
 class Harness:
     """Eine Firefox-Instanz mit installiertem Add-on und Hilfsfunktionen für einen Test."""
 
-    def __init__(self, headed=False, prefs=None, system_access=False, width=1600, height=1100):
+    def __init__(self, headed=False, prefs=None, width=1600, height=1100):
         o = Options()
         if os.environ.get("FIREFOX_BIN"):
             o.binary_location = os.environ["FIREFOX_BIN"]
         if not headed:
             o.add_argument("-headless")
-        if system_access:
-            o.add_argument("-remote-allow-system-access")   # Chrome-Kontext (Firefox-Interna) erlauben
+        # Erlaubt WebDriver den Zugriff auf privilegierte Seiten: ab etwa Firefox 15x nötig, um
+        # moz-extension://-Seiten (Dashboard) zu öffnen, und für den Chrome-Kontext (Firefox-Interna).
+        o.add_argument("-remote-allow-system-access")
         o.accept_insecure_certs = True
         base = {
             "extensions.webextensions.uuids": json.dumps({"cookie-curator@chief-beaver.com": UUID}),
@@ -112,7 +113,8 @@ class Harness:
         base.update(prefs or {})
         for k, v in base.items():
             o.set_preference(k, v)
-        service = Service(os.environ["GECKODRIVER"]) if os.environ.get("GECKODRIVER") else Service()
+        args = ["--allow-system-access"]                       # Gegenstück in geckodriver
+        service = Service(os.environ["GECKODRIVER"], service_args=args) if os.environ.get("GECKODRIVER") else Service(service_args=args)
         self.drv = webdriver.Firefox(options=o, service=service)
         self.drv.set_window_size(width, height)
         self.drv.install_addon(str(ADDON), temporary=True)

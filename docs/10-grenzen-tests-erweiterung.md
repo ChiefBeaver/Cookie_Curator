@@ -46,6 +46,11 @@ npm test                              # Einheiten- und Oberflächentests
 python firefox\run_firefox.py         # Firefox-Integrationstests
 ```
 
+Auf GitHub laufen alle Ebenen bei jedem Push automatisch in einem vorbereiteten Docker-Image
+(`.github/workflows/ci.yml`, `.github/ci/Dockerfile`); Einzelheiten in `tests/README.md`,
+Abschnitt „Automatische Tests auf GitHub“. Die Firefox-Tests laufen dort mit der aktuellen
+Firefox-ESR-Version aus Debian (beim Einrichten 153 ESR), lokal mit dem installierten Firefox.
+
 ### 1. Einheitentests mit Node
 
 `lib/core.js` braucht keinen DOM und läuft in Node, wenn man ein minimales `browser`-Objekt

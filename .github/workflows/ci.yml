@@ -1,0 +1,199 @@
+# CI für Cookie Curator
+#
+# Ablauf:
+#   1. image    – stellt das CI-Image bereit (.github/ci/Dockerfile). Es wird nur gebaut, wenn es
+#                 für den aktuellen Stand von Dockerfile und Test-Abhängigkeiten noch nicht in der
+#                 GitHub Container Registry liegt; sonst wird das vorhandene verwendet.
+#   2. unit, ui, lint, firefox – laufen parallel in diesem Image, ohne etwas zu installieren.
+#   3. release  – nur bei einem Versions-Tag (v0.8.0 …): baut die XPI und hängt sie an ein Release.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      rebuild_image:
+        description: "CI-Image neu bauen (z. B. für eine neuere Firefox-ESR-Version)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: CI-Image bereitstellen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.tag.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image-Namen aus Inhalt berechnen
+        id: tag
+        run: |
+          hash=$(cat .github/ci/Dockerfile tests/package.json tests/requirements.txt | sha256sum | cut -c1-16)
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "repo=ghcr.io/${owner}/cookie-curator-ci" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${owner}/cookie-curator-ci:${hash}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prüfen, ob das Image schon existiert
+        id: exists
+        run: |
+          if [ "${{ inputs.rebuild_image }}" != "true" ] && docker buildx imagetools inspect "${{ steps.tag.outputs.image }}" > /dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Vorhandenes Image wird verwendet: ${{ steps.tag.outputs.image }}"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.exists.outputs.found != 'true'
+
+      - name: Image bauen und hochladen
+        if: steps.exists.outputs.found != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .github/ci/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.tag.outputs.image }}
+            ${{ steps.tag.outputs.repo }}:latest
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+  unit:
+    name: Einheitentests
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tests/unit/run-unit.js
+
+  ui:
+    name: Oberflächentests
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --shm-size=2g
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tests/ui/run-ui.js
+      - name: Bildschirmfotos aufbewahren
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-bildschirmfotos
+          path: tests/output/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  lint:
+    name: Mozilla addons-linter
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python tools/build_xpi.py
+      - run: addons-linter cookie-curator.xpi
+
+  firefox:
+    name: Firefox-Tests
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ${{ needs.image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --shm-size=2g
+    steps:
+      - uses: actions/checkout@v4
+      - run: firefox-esr --version
+      - run: python tests/firefox/run_firefox.py
+      - name: Bildschirmfotos aufbewahren
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-bildschirmfotos
+          path: tests/output/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Release mit XPI
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [image, unit, ui, lint, firefox]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    container:
+      image: ${{ needs.image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag mit Version im Manifest vergleichen
+        run: |
+          version=$(python -c "import json; print(json.load(open('manifest.json'))['version'])")
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} passt nicht zur Version ${version} in manifest.json"
+            exit 1
+          fi
+
+      - name: XPI bauen
+        run: |
+          python tools/build_xpi.py
+          mv cookie-curator.xpi "cookie-curator-${GITHUB_REF_NAME}.xpi"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: cookie-curator-${{ github.ref_name }}.xpi
+          generate_release_notes: true

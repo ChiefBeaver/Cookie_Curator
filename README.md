@@ -1,5 +1,7 @@
 # Cookie Curator – Firefox-Erweiterung
 
+[![CI](https://github.com/ChiefBeaver/Cookie_Curator/actions/workflows/ci.yml/badge.svg)](https://github.com/ChiefBeaver/Cookie_Curator/actions/workflows/ci.yml)
+
 Cookies pro Seite steuern: Login- und Consent-Cookies behalten, Tracking und Rest automatisch löschen oder sofort blockieren.
 
 ## Installation
@@ -25,6 +27,8 @@ Die XPI ist nicht im Git-Repository; erzeugen mit `python tools/build_xpi.py`.
 - Tests: `tests/README.md` – Einheitentests (Node), Oberflächentests (Playwright) und
   Integrationstests in echtem Firefox (Python/Selenium) samt lokalen Testservern.
 - Technische Dokumentation: `docs/` (PDF neu erzeugen: `python tools/build_pdf.py`).
+- CI: GitHub Actions führt bei jedem Push alle Tests in einem vorbereiteten Docker-Image aus
+  (`.github/workflows/ci.yml`); ein Tag wie `v0.8.0` erzeugt ein Release mit der XPI.
 
 ## Aufbau pro Seite (ab 0.5)
 
