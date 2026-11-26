@@ -1,149 +1,170 @@
-# Cookie Curator – Firefox-Erweiterung
+# Cookie Curator – Firefox extension
 
 [![CI](https://github.com/ChiefBeaver/Cookie_Curator/actions/workflows/ci.yml/badge.svg)](https://github.com/ChiefBeaver/Cookie_Curator/actions/workflows/ci.yml)
 
-Cookies pro Seite steuern: Login- und Consent-Cookies behalten, Tracking und Rest automatisch löschen oder sofort blockieren.
+Control cookies per site: keep login and consent cookies, automatically delete or immediately block tracking and everything else.
+
+[Deutsch](README.de.md) · **English**
 
 ## Installation
 
-**Temporär (zum Testen, bis zum Neustart):**
-1. `about:debugging#/runtime/this-firefox` öffnen
-2. *Temporäres Add-on laden …* → `manifest.json` in diesem Ordner wählen
+**Temporary (for testing, until restart):**
+1. Open `about:debugging#/runtime/this-firefox`
+2. *Load Temporary Add-on …* → choose `manifest.json` in this folder
 
-**Dauerhaft ohne Mozilla-Signatur** (nur Firefox Developer Edition / Nightly / ESR):
+**Permanently without Mozilla signature** (Firefox Developer Edition / Nightly / ESR only):
 1. `about:config` → `xpinstall.signatures.required` = `false`
-2. `about:addons` → Zahnrad → *Add-on aus Datei installieren* → `cookie-curator.xpi`
+2. `about:addons` → gear icon → *Install Add-on From File* → `cookie-curator.xpi`
 
-**Dauerhaft im normalen Firefox:** XPI auf addons.mozilla.org als *unlisted* hochladen und signieren lassen
-(`npx web-ext sign --channel=unlisted --api-key … --api-secret …`), dann die signierte XPI installieren.
+**Permanently in regular Firefox:** upload the XPI to addons.mozilla.org as *unlisted* and have it signed
+(`npx web-ext sign --channel=unlisted --api-key … --api-secret …`), then install the signed XPI.
 
-Mindestversion: Firefox 140 (ESR 140).
+Minimum version: Firefox 140 (ESR 140).
 
-Die XPI ist nicht im Git-Repository; erzeugen mit `python tools/build_xpi.py`.
+The XPI is not in the Git repository; build it with `python tools/build_xpi.py`.
 
-## Entwicklung
+## Development
 
-- Git-Repository im Hauptordner (Zweig `main`).
-- Tests: `tests/README.md` – Einheitentests (Node), Oberflächentests (Playwright) und
-  Integrationstests in echtem Firefox (Python/Selenium) samt lokalen Testservern.
-- Technische Dokumentation: `docs/` (PDF neu erzeugen: `python tools/build_pdf.py`).
-- CI: GitHub Actions führt bei jedem Push alle Tests in einem vorbereiteten Docker-Image aus
-  (`.github/workflows/ci.yml`); ein Tag wie `v0.8.0` erzeugt ein Release mit der XPI.
+- Git repository in the main folder (branch `main`).
+- Tests: `tests/README.md` – unit tests (Node), UI tests (Playwright) and
+  integration tests in real Firefox (Python/Selenium) including local test servers.
+- Technical documentation: `docs/` (in German; rebuild the PDF with `python tools/build_pdf.py`).
+- CI: GitHub Actions runs all tests on every push in a prepared Docker image
+  (`.github/workflows/ci.yml`); a tag such as `v0.8.0` creates a release with the XPI.
 
-## Aufbau pro Seite (ab 0.5)
+## Languages
 
-- **Allgemein:** Bereinigen bei Tab-Schliessen, Notiz – gilt für Cookies und Website-Daten.
-- **Cookies:** Richtlinie (Standard für übrige Cookies, Kategorien) → Inhalt → Cookie-Regeln → Cookie-Archiv.
-- **Website-Daten:** Richtlinie (Modus je Speicherart, Standard für übrige Einträge) → Inhalt → Eintragsregeln.
+The interface is available in English and German. The language button (`EN` / `DE`) at the top right of the
+popup and the dashboard switches to the next language in turn; the choice applies to all windows and is kept
+(`storage.local` → `cc_lang`). Without a choice, Firefox's language is used, otherwise English.
 
-Begriffe: *Website-Daten* = alles ausser Cookies (wie in Firefox „Cookies und Website-Daten“);
-*Eintragsregel* = Regel für einzelne Einträge in localStorage/sessionStorage.
+**Adding a language** (example French, `fr`):
 
-## Bedienung
+1. Copy `locales/en.js` to `locales/fr.js`, change `I18N.register("en", …)` in it to `"fr"`
+   and translate the texts. Leave placeholders such as `{n}` or `{site}` unchanged.
+2. Add the line `fr: "Français"` to `LANGUAGES` in `lib/i18n.js`.
+3. Optional: translate the help tab – copy `locales/help/en.js` to `locales/help/fr.js` (otherwise the English help is shown).
+4. Optional: description in the add-ons manager – create `_locales/fr/messages.json`.
+5. `npm run test:unit` in the `tests` folder checks that the new file has exactly the same keys as `en.js`.
 
-- **Popup (Toolbar-Icon):** alle Cookies der aktuellen Seite, Richtlinie der Seite, Schnellregel pro Cookie
-  (Auto / Behalten / Löschen / Blockieren), Detailansicht per Klick auf den Namen.
-- **Dashboard (Einstellungen der Erweiterung):** Übersicht aller Seiten, Seiten-Editor mit allen Spalten,
-  globale Regeln, Kategorie-Muster, Trigger-Einstellungen, Protokoll (CSV-Export), Import/Export (JSON).
-- **Badge:** Anzahl Löschkandidaten der aktuellen Seite (grün = nichts zu löschen).
+If a text is missing in a language, the English one is shown.
 
-## Löschen, Archivieren, Zurückholen (ab 0.1)
+## Layout per site (since 0.5)
 
-- **Auswahl:** In der Cookie-Tabelle links Häkchen setzen → *Archivieren*, *Archivieren + löschen* oder *Löschen*.
-  Einzelne Cookies auch in der Detailansicht (Klick auf den Namen).
-- **Archiv:** speichert pro Cookie mehrere Versionen (Wert, Ablauf, Flags, Container, Partition), Standard max. 5.
-  Identische Versionen werden nicht doppelt abgelegt. Archivierte Werte sind im Dashboard bearbeitbar.
-- **Zurückholen:** setzt das Cookie exakt auf den archivierten Stand (überschreibt den aktuellen Wert).
-  Abgelaufene Versionen werden um die eingestellte Anzahl Tage verlängert (0 = als Sitzungscookie).
-- **⟲ Autostart:** Eine Version pro Cookie kann markiert werden. Sie wird bei jedem Browserstart
-  nach der Start-Bereinigung gesetzt. Damit sie danach nicht wieder bereinigt wird: Behalten-Regel setzen.
-- **Übersicht:** Dashboard → *Archiv* (Filter Autostart / fehlend / abweichend, Sammelaktionen, Export).
-- Das Archiv liegt in `storage.local` unter `cc_archive` und ist im JSON-Export enthalten.
-  Es kann Login-Sitzungen enthalten – Exportdateien entsprechend schützen.
+- **General:** clean on tab close, note – applies to cookies and site data.
+- **Cookies:** policy (default for other cookies, categories) → content → cookie rules → cookie archive.
+- **Site data:** policy (mode per storage type, default for other entries) → content → entry rules.
 
-## Website-Daten (ab 0.3; bis 0.4 „Lokaler Speicher“)
+Terms: *site data* = everything except cookies (as in Firefox's “Cookies and Site Data”);
+*entry rule* = rule for individual entries in localStorage/sessionStorage.
 
-Pro Seite (und global) je eine Einstellung für **localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker, HTTP-Cache**:
+## Usage
 
-| Modus | Wirkung |
+- **Popup (toolbar icon):** all cookies of the current site, the site's policy, quick rule per cookie
+  (Auto / Keep / Delete / Block), detail view by clicking the name.
+- **Dashboard (extension preferences):** overview of all sites, site editor with all columns,
+  global rules, category patterns, trigger settings, log (CSV export), import/export (JSON).
+- **Badge:** number of deletion candidates on the current site (green = nothing to delete).
+
+## Delete, archive, restore (since 0.1)
+
+- **Selection:** tick boxes on the left of the cookie table → *Archive*, *Archive + delete* or *Delete*.
+  Individual cookies also in the detail view (click on the name).
+- **Archive:** stores several versions per cookie (value, expiry, flags, container, partition), default max. 5.
+  Identical versions are not stored twice. Archived values can be edited in the dashboard.
+- **Restore:** sets the cookie exactly to the archived state (overwrites the current value).
+  Expired versions are extended by the configured number of days (0 = as session cookie).
+- **⟲ Autostart:** one version per cookie can be marked. It is set on every browser startup
+  after the startup cleanup. To keep it from being cleaned again afterwards: set a Keep rule.
+- **Overview:** Dashboard → *Archive* (filters autostart / missing / different, bulk actions, export).
+- The archive is stored in `storage.local` under `cc_archive` and is part of the JSON export.
+  It can contain login sessions – protect export files accordingly.
+
+## Site data (since 0.3; until 0.4 “local storage”)
+
+One setting per site (and globally) for **localStorage, sessionStorage, IndexedDB, Cache Storage, service workers, HTTP cache**:
+
+| Mode | Effect |
 |---|---|
-| Behalten | nichts passiert |
-| Löschen | ganze Speicherart pro Host bei jeder Bereinigung (Tab-Schliessen, Start, Intervall, manuell) via `browsingData.remove({hostnames})` |
-| Selektiv (nur local/sessionStorage) | einzelne Einträge nach Eintragsregeln; Content-Script bei `document_start`, also bevor die Seitenskripte laufen |
+| Keep | nothing happens |
+| Delete | the whole storage type per host on every cleanup (tab close, startup, interval, manual) via `browsingData.remove({hostnames})` |
+| Selective (local/sessionStorage only) | individual entries by entry rules; content script at `document_start`, i.e. before the page's scripts run |
 
-- Eintragsregeln: Typ exakt/glob/regex, Name, Speicher (local/session/beide), Aktion Behalten/Löschen, Reihenfolge = Priorität;
-  dazu „Standard für übrige Einträge“.
-- Live-Ansicht bei offenem Tab (ab 0.4 im Seitenkontext via `scripting.executeScript`, world MAIN):
-  local/sessionStorage-Einträge mit Schnellregel und Einzel-Löschen; IndexedDB mit Object Stores und Anzahl Einträgen
-  (Datenbank löschen, Store leeren); Cache Storage mit URLs/Typ/Grösse (Cache oder Eintrag löschen);
-  Service Worker mit Scope/Skript/Status (abmelden); Quota. Neue Berechtigung: `scripting`.
-- Firefox löscht nur **exakte** Hosts. Das Add-on merkt sich alle besuchten Hosts einer Seite (`cc_hosts`) plus Cookie-Domains.
-  Subdomains, die nie als Tab offen waren (reine iframes), werden nicht erfasst.
-- Cache Storage (Cache API, ab 0.7): Firefox bietet Erweiterungen keine Löschung pro Host. Das Add-on löscht ihn sofort
-  in offenen Tabs der Seite, sonst beim nächsten Aufruf des Hosts (Skript bei `document_start`, bevor die Seite startet).
-  Vorher (bis 0.6.1) wurde Cache Storage bei „Alles löschen“ und bei der Bereinigung nicht entfernt.
-- HTTP-Cache: Firefox leert bei manchen Cache-Arten ggf. den ganzen Cache.
-- Neue Berechtigung: `browsingData`.
+- Entry rules: type exact/glob/regex, name, storage (local/session/both), action Keep/Delete, order = priority;
+  plus “default for other entries”.
+- Live view with an open tab (since 0.4 in the page context via `scripting.executeScript`, world MAIN):
+  local/sessionStorage entries with quick rule and single deletion; IndexedDB with object stores and number of entries
+  (delete database, clear store); Cache Storage with URLs/type/size (delete cache or entry);
+  service workers with scope/script/status (unregister); quota. New permission: `scripting`.
+- Firefox deletes only **exact** hosts. The add-on remembers all visited hosts of a site (`cc_hosts`) plus cookie domains.
+  Subdomains that were never open as a tab (pure iframes) are not covered.
+- Cache Storage (Cache API, since 0.7): Firefox offers extensions no per-host deletion. The add-on deletes it immediately
+  in open tabs of the site, otherwise on the next visit to the host (script at `document_start`, before the page starts).
+  Before (up to 0.6.1), Cache Storage was not removed by “Delete everything” and by cleanup.
+- HTTP cache: for some cache types Firefox may clear the entire cache.
+- New permission: `browsingData`.
 
-## Rückgängig / Wiederholen (ab 0.2)
+## Undo / redo (since 0.2)
 
-- Knöpfe ↶ / ↷ oben rechts im Dashboard und im Popup, oder Strg+Z / Strg+Y (ausserhalb von Textfeldern).
-- Erfasst jede Konfigurationsänderung (Richtlinien, Regeln, Kategorien, Einstellungen, Import, Zurücksetzen),
-  bis 100 Schritte, gespeichert in `cc_history` (übersteht Neustarts). Verlauf leeren unter *Einstellungen*.
-- Nicht erfasst: Cookies selbst, Archiv, Protokoll.
+- Buttons ↶ / ↷ at the top right of the dashboard and the popup, or Ctrl+Z / Ctrl+Y (outside text fields).
+- Records every configuration change (policies, rules, categories, settings, import, reset),
+  up to 100 steps, stored in `cc_history` (survives restarts). Clear the history under *Settings*.
+- Not recorded: the cookies themselves, archive, log, language.
 
-## Entscheidungslogik (erste Übereinstimmung gewinnt)
+## Decision logic (first match wins)
 
-1. Seitenregeln (geordnet; Schnellregeln landen oben)
-2. Globale Regeln
-3. Kategorie (Consent → Tracking → Login/Session, über Namensmuster) – Aktion pro Seite übersteuerbar
-4. Seiten-Standard
-5. Globaler Standard
+1. Site rules (ordered; quick rules go to the top)
+2. Global rules
+3. Category (consent → tracking → login/session, by name pattern) – action can be overridden per site
+4. Site default
+5. Global default
 
-Regelfelder: Typ `exact|glob|regex`, Name, Domain-Glob, Pfad-Glob, Container (cookieStoreId), Aktion.
+Rule fields: type `exact|glob|regex`, name, domain glob, path glob, container (cookieStoreId), action.
 
-Aktionen: **Behalten**, **Löschen** (bei der nächsten Bereinigung), **Blockieren** (sofort nach dem Setzen gelöscht).
+Actions: **Keep**, **Delete** (on the next cleanup), **Block** (deleted immediately after being set).
 
-Bereinigung läuft: beim Schliessen des letzten Tabs einer Seite (mit Verzögerung), beim Browserstart,
-optional im Intervall und manuell.
+Cleanup runs: when the last tab of a site is closed (with a delay), on browser startup,
+optionally at an interval, and manually.
 
-## Technische Details
+## Technical details
 
-- Manifest V2 (in Firefox weiterhin unterstützt; persistenter Hintergrund für Tab-Timer)
-- Seiten-Schlüssel = eTLD+1 über kompakte Suffix-Liste (in den Einstellungen erweiterbar)
-- Partitionierte Cookies (Total Cookie Protection / CHIPS) werden der Top-Level-Seite zugeordnet und mit `3P` markiert;
-  Entfernen erfolgt mit korrektem `partitionKey`, `firstPartyDomain` und `storeId`
-- Container werden unterstützt (Spalte Container, Regel-Feld Container)
-- Konfiguration in `storage.local` unter `cc_config`, Protokoll unter `cc_log`
-- Website-Daten (localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker, HTTP-Cache) siehe Abschnitt *Website-Daten*
+- Manifest V2 (still supported in Firefox; persistent background for tab timers)
+- Site key = eTLD+1 via a compact suffix list (extendable in the settings)
+- Partitioned cookies (Total Cookie Protection / CHIPS) are assigned to the top-level site and marked `3P`;
+  removal uses the correct `partitionKey`, `firstPartyDomain` and `storeId`
+- Containers are supported (container column, container rule field)
+- Configuration in `storage.local` under `cc_config`, log under `cc_log`, language under `cc_lang`
+- Site data (localStorage, sessionStorage, IndexedDB, Cache Storage, service workers, HTTP cache): see section *Site data*
 
-## Dateien
+## Files
 
 ```
 manifest.json
-background.js        Trigger, Blockieren, Protokoll, Badge
-lib/core.js          Regel-Engine, Klassifizierung, Domains, Cookie-API
-lib/pagefns.js       Funktionen im Seitenkontext (Live-Ansicht, Einzelaktionen)
-ui/ui.js, ui/ui.css  gemeinsame UI (Seiten-Editor, Regel-Tabelle)
-ui/tables.js         veränderbare Spaltenbreiten
-popup/               Toolbar-Popup
-options/             Dashboard
-page/cache-purge.js  löscht Cache Storage beim nächsten Seitenaufruf
-docs/                technische Dokumentation (Markdown und PDF)
-tests/               Tests und Testumgebung (Anleitung: tests/README.md)
+background.js        triggers, blocking, log, badge
+lib/i18n.js          translations: language choice, I18N.t(), loading the language files
+lib/core.js          rule engine, classification, domains, cookie API
+lib/pagefns.js       functions in the page context (live view, single actions)
+ui/ui.js, ui/ui.css  shared UI (site editor, rule table)
+ui/tables.js         resizable column widths
+popup/               toolbar popup
+options/             dashboard
+page/cache-purge.js  deletes Cache Storage on the next page visit
+locales/             interface texts per language (en.js, de.js), help in locales/help/
+_locales/            description in the add-ons manager (read by Firefox itself)
+docs/                technical documentation (Markdown and PDF, German)
+tests/               tests and test environment (instructions: tests/README.md)
 tools/               build_xpi.py, build_pdf.py
 icons/icon.svg
 ```
 
-## Lizenz
+## License
 
 Copyright (C) 2026 ChiefBeaver
 
-Dieses Programm ist freie Software: Du kannst es unter den Bedingungen der GNU General Public
-License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder ändern,
-entweder gemäss Version 3 der Lizenz oder (nach deiner Wahl) jeder späteren Version
-(`GPL-3.0-or-later`).
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version (`GPL-3.0-or-later`).
 
-Es wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar
-ohne die implizite Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
-Den vollständigen Lizenztext (englisch, rechtlich massgebend) enthält die Datei [`LICENSE`](LICENSE).
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. The full license
+text is in the file [`LICENSE`](LICENSE).
