@@ -23,4 +23,14 @@ module.exports = [
     assert.equal(await pp.evaluate(() => __mock.store.cc_lang), "en");
     assert.equal(await pp.locator("#lang-slot button").textContent(), "EN");
   }],
+  ["Hilfe wird in der gewählten Sprache geladen", async ({ newPage, BASE }) => {
+    const p = await newPage();
+    await p.goto(BASE + "options/options.html#help"); await p.waitForTimeout(800);
+    assert.equal(await p.locator(".help h2").first().textContent(), "A · Wie dieses Add-on funktioniert");
+    assert.ok(await p.locator(".help .toc li").count() >= 18, "Inhaltsverzeichnis");
+    await p.click("#lang-slot button"); await p.waitForTimeout(1000);
+    assert.equal(await p.locator(".help h2").first().textContent(), "A · How this add-on works");
+    assert.equal(await p.locator("#nav a[data-route=help]").textContent(), "How it works");
+  }],
 ];
+

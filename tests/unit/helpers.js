@@ -10,7 +10,7 @@ const read = rel => fs.readFileSync(path.join(ROOT, rel), "utf8");
 
 /* lib/core.js laden → CC */
 /* Übersetzungen in einen VM-Kontext laden; Standardsprache der Tests ist Deutsch */
-const I18N_FILES = ["lib/i18n.js", ...fs.readdirSync(path.join(ROOT, "locales")).sort().map(f => "locales/" + f)];
+const I18N_FILES = ["lib/i18n.js", ...fs.readdirSync(path.join(ROOT, "locales")).filter(f => f.endsWith(".js")).sort().map(f => "locales/" + f)];
 function loadI18n(ctx, lang = "de") {
   for (const f of I18N_FILES) vm.runInContext(read(f), ctx, { filename: f });
   vm.runInContext("I18N", ctx).setLang(lang);

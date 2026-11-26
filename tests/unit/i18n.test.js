@@ -65,4 +65,21 @@ module.exports = [
       assert.deepEqual(extra, [], code + ": Schlüssel, die es in en.js nicht gibt");
     }
   }],
+  ["Hilfe: jede Hilfedatei hat dieselben Kapitel wie die englische", () => {
+    const dir = path.join(ROOT, "locales", "help");
+    const chapters = file => {
+      const d = dictOf("../locales/help/" + file).d;
+      // Bausteine als Attrappen: CH liefert [id, Titel], alles andere ist egal
+      const h = new Proxy({}, { get: (_, k) => k === "CH" ? (id, title) => [id, title] : () => null });
+      const r = d["help.content"](h);
+      for (const k of ["tocAddon", "tocBasics", "titleAddon", "introAddon", "titleBasics", "introBasics"]) assert.ok(r.text[k], file + ": text." + k);
+      return { addon: r.addon.map(c => c[0]), basics: r.basics.map(c => c[0]) };
+    };
+    const en = chapters("en.js");
+    assert.ok(en.addon.length && en.basics.length);
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".js"))) {
+      assert.ok(fresh().LANGUAGES[f.replace(/\.js$/, "")], f + " gehört zu keiner Sprache in LANGUAGES");
+      assert.deepEqual(chapters(f), en, f + ": Kapitel weichen von en.js ab");
+    }
+  }],
 ];
