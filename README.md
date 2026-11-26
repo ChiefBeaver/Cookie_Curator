@@ -132,3 +132,16 @@ tests/               Tests und Testumgebung (Anleitung: tests/README.md)
 tools/               build_xpi.py, build_pdf.py
 icons/icon.svg
 ```
+
+## Lizenz
+
+Copyright (C) 2026 ChiefBeaver
+
+Dieses Programm ist freie Software: Du kannst es unter den Bedingungen der GNU General Public
+License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder ändern,
+entweder gemäss Version 3 der Lizenz oder (nach deiner Wahl) jeder späteren Version
+(`GPL-3.0-or-later`).
+
+Es wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar
+ohne die implizite Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+Den vollständigen Lizenztext (englisch, rechtlich massgebend) enthält die Datei [`LICENSE`](LICENSE).

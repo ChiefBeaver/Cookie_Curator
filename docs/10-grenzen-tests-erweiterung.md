@@ -147,10 +147,10 @@ Firefox für Android nicht gesetzt (Add-on ist für Desktop gedacht).
 ## 10.5 Paketieren, Signieren, Installieren
 
 * **Paket:** `python tools/build_xpi.py` erzeugt `cookie-curator.xpi`. Inhalt: `manifest.json`,
-  `background.js`, `lib/`, `ui/`, `popup/`, `options/`, `icons/`, `page/` – **ohne** `docs/`,
+  `background.js`, `lib/`, `ui/`, `popup/`, `options/`, `icons/`, `page/`, `LICENSE` – **ohne** `docs/`,
   `tests/`, `tools/` und `README.md`. Von Hand dasselbe:
   ```
-  zip -r cookie-curator.xpi manifest.json background.js lib ui popup options icons page
+  zip -r cookie-curator.xpi manifest.json background.js lib ui popup options icons page LICENSE
   ```
 * **Zum Testen:** `about:debugging#/runtime/this-firefox` → „Temporäres Add-on laden“ →
   `manifest.json`. Wird beim Beenden von Firefox entfernt (Daten in `storage.local` bleiben für

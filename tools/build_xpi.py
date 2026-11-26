@@ -6,7 +6,7 @@ import json, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PARTS = ["manifest.json", "background.js", "lib", "ui", "popup", "options", "icons", "page"]
+PARTS = ["manifest.json", "background.js", "lib", "ui", "popup", "options", "icons", "page", "LICENSE"]
 
 version = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))["version"]
 out = ROOT / "cookie-curator.xpi"
