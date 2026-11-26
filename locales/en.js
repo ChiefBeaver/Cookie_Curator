@@ -100,7 +100,7 @@ I18N.register("en", {
   "bg.manualBlocked": "manual (blocked, runs once the connection is closed)",
   "bg.cookieRejected": "Firefox rejected the cookie",
   "bg.fromArchive": "from archive of {date}",
-  "bg.badgeTitle": "Cookie Curator – {site}\n{total} cookies, {pending} will be deleted on cleanup",
+  "bg.badgeTitle": "Cookie Curator – {site}\n{total} cookies, {n} will be deleted on cleanup",
   "bg.unknownType": "unknown storage type {type}",
   "bg.noSelective": "no selective mode active",
   "bg.manualEntry": "manual: {store}Storage entry",

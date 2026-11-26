@@ -668,7 +668,7 @@ async function updateBadge(tab) {
     browser.browserAction.setBadgeBackgroundColor({ color: pending ? "#c2410c" : "#15803d", tabId: tab.id });
     if (browser.browserAction.setBadgeTextColor) browser.browserAction.setBadgeTextColor({ color: "#ffffff", tabId: tab.id });
     browser.browserAction.setTitle({
-      title: I18N.t("bg.badgeTitle", { site, total: cookies.length, pending }),
+      title: I18N.t("bg.badgeTitle", { site, total: cookies.length, n: pending }),
       tabId: tab.id
     });
   } catch (e) { /* Tab weg */ }
