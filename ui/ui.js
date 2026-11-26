@@ -3,6 +3,7 @@
  */
 (function (root) {
   "use strict";
+  const T = I18N.t;
 
   /* ------------------------------------------------------------------ */
   /* DOM-Helfer                                                          */
@@ -57,7 +58,7 @@
       clearTimeout(timer); disarm();
       b.disabled = true;
       try { await action(); }
-      catch (e) { console.error("[Cookie Curator]", e); toast("Fehler: " + (e && e.message || e), "err", 8000); }
+      catch (e) { console.error("[Cookie Curator]", e); toast(T("ui.error", { msg: e && e.message || e }), "err", 8000); }
       finally { b.disabled = false; }
     });
     return b;
@@ -65,8 +66,8 @@
 
   /* Rückmeldung nach dem Löschen einer ganzen Speicherart */
   function deletedText(type, hosts) {
-    if (type === "cacheStorage") return "Cache Storage gelöscht: in offenen Tabs sofort, sonst beim nächsten Aufruf der Seite (vor deren Skripten)";
-    return `${CC.STORAGE_LABEL[type]} gelöscht für ${hosts.length} Host(s)`;
+    if (type === "cacheStorage") return T("ui.cacheDeleted");
+    return T("ui.typeDeleted", { label: CC.STORAGE_LABEL[type], n: hosts.length });
   }
 
   let toastTimer = null;
@@ -80,8 +81,8 @@
   }
 
   async function copyText(text) {
-    try { await navigator.clipboard.writeText(text); toast("Kopiert"); }
-    catch (e) { toast("Kopieren fehlgeschlagen", "err"); }
+    try { await navigator.clipboard.writeText(text); toast(T("ui.copied")); }
+    catch (e) { toast(T("ui.copyFailed"), "err"); }
   }
 
   function actionPill(action, title) {
@@ -90,18 +91,18 @@
 
   function catBadge(cat, pattern) {
     if (!cat) return null;
-    return el("span", { class: "badge c-" + cat, title: "Erkannt über Muster: " + pattern }, CC.CATEGORY_LABEL[cat]);
+    return el("span", { class: "badge c-" + cat, title: T("ui.detectedBy", { pattern }) }, CC.CATEGORY_LABEL[cat]);
   }
 
   function flagTags(c) {
     const ss = { lax: ["L", "SameSite=Lax"], strict: ["S", "SameSite=Strict"], no_restriction: ["N", "SameSite=None"] }[c.sameSite];
     return el("span", { class: "flags" },
       c.secure ? el("i", { title: "Secure" }, "Sec") : null,
-      c.httpOnly ? el("i", { title: "HttpOnly – für JavaScript unsichtbar" }, "HO") : null,
+      c.httpOnly ? el("i", { title: T("flag.httpOnly") }, "HO") : null,
       ss ? el("i", { title: ss[1] }, "SS:" + ss[0]) : null,
-      c.hostOnly ? el("i", { title: "Host-only (kein Domain-Attribut)" }, "Host") : null,
-      c.partitionKey ? el("i", { class: "warn", title: "Partitioniert unter " + (c.partitionKey.topLevelSite || "?") }, "Part") : null,
-      c.firstPartyDomain ? el("i", { title: "First-Party-Isolation: " + c.firstPartyDomain }, "FPI") : null
+      c.hostOnly ? el("i", { title: T("flag.hostOnly") }, "Host") : null,
+      c.partitionKey ? el("i", { class: "warn", title: T("flag.partitioned", { site: c.partitionKey.topLevelSite || "?" }) }, "Part") : null,
+      c.firstPartyDomain ? el("i", { title: T("flag.fpi", { domain: c.firstPartyDomain }) }, "FPI") : null
     );
   }
 
@@ -114,16 +115,16 @@
     const wrap = el("div", { class: "rules" });
 
     const head = el("tr", {},
-      el("th", { title: "Priorität – oberste passende Regel gewinnt" }, "#"),
-      el("th", { title: "Aktiv" }, "An"),
-      el("th", {}, "Typ"),
-      el("th", {}, "Name"),
-      el("th", { title: "Glob auf Cookie-Domain (ohne Punkt), leer = alle" }, "Domain"),
-      el("th", { title: "Glob auf Pfad, leer = alle" }, "Pfad"),
-      el("th", {}, "Container"),
-      el("th", {}, "Aktion"),
-      el("th", {}, "Notiz"),
-      cookies ? el("th", { title: "Treffer unter den aktuellen Cookies dieser Seite" }, "Treffer") : null,
+      el("th", { title: T("rules.priority") }, "#"),
+      el("th", { title: T("rules.enabledTitle") }, T("rules.enabled")),
+      el("th", {}, T("rules.type")),
+      el("th", {}, T("rules.name")),
+      el("th", { title: T("rules.domainTitle") }, T("rules.domain")),
+      el("th", { title: T("rules.pathTitle") }, T("rules.path")),
+      el("th", {}, T("rules.container")),
+      el("th", {}, T("rules.action")),
+      el("th", {}, T("rules.note")),
+      cookies ? el("th", { title: T("rules.hitsTitle") }, T("rules.hits")) : null,
       el("th", {}, ""));
 
     const body = el("tbody");
@@ -135,10 +136,10 @@
       const validate = () => {
         const err = r.match === "regex" ? CC.validateRegex(r.name) : null;
         nameInput.classList.toggle("invalid", !!err);
-        nameInput.title = err ? "Ungültiger RegExp: " + err : "";
+        nameInput.title = err ? T("rules.invalidRegex", { err }) : "";
       };
       validate();
-      const storeOpts = [["", "alle"]].concat(Object.entries(containers));
+      const storeOpts = [["", T("rules.allContainers")]].concat(Object.entries(containers));
       if (r.store && !containers[r.store]) storeOpts.push([r.store, r.store]);
       let hits = null;
       if (cookies) {
@@ -147,30 +148,30 @@
       }
       body.append(el("tr", { class: r.enabled ? "" : "disabled" },
         el("td", { class: "order" },
-          el("button", { class: "icon", title: "nach oben", disabled: i === 0, onclick: () => { rules.splice(i - 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▲"),
-          el("button", { class: "icon", title: "nach unten", disabled: i === rules.length - 1, onclick: () => { rules.splice(i + 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▼")),
+          el("button", { class: "icon", title: T("rules.up"), disabled: i === 0, onclick: () => { rules.splice(i - 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▲"),
+          el("button", { class: "icon", title: T("rules.down"), disabled: i === rules.length - 1, onclick: () => { rules.splice(i + 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▼")),
         el("td", {}, el("input", { type: "checkbox", checked: r.enabled, onchange: e => { r.enabled = e.target.checked; onStructure(); } })),
-        el("td", {}, select([["exact", "exakt"], ["glob", "glob"], ["regex", "regex"]], r.match, v => { r.match = v; validate(); onChange(); })),
+        el("td", {}, select([["exact", T("rules.exact")], ["glob", "glob"], ["regex", "regex"]], r.match, v => { r.match = v; validate(); onChange(); })),
         el("td", {}, nameInput),
         el("td", {}, el("input", { class: "mono", value: r.domain, placeholder: "*", spellcheck: "false", onchange: e => { r.domain = e.target.value.trim().replace(/^\./, ""); onChange(); } })),
         el("td", {}, el("input", { class: "mono short", value: r.path, placeholder: "*", spellcheck: "false", onchange: e => { r.path = e.target.value.trim(); onChange(); } })),
         el("td", {}, select(storeOpts, r.store || "", v => { r.store = v; onChange(); })),
         el("td", {}, select(CC.ACTIONS.map(a => [a, CC.ACTION_LABEL[a]]), r.action, v => { r.action = v; onChange(); }, { class: "act-" + r.action })),
-        el("td", {}, el("input", { value: r.note || "", placeholder: r.quick ? "Schnellregel" : "", onchange: e => { r.note = e.target.value; onChange(); } })),
+        el("td", {}, el("input", { value: r.note || "", placeholder: r.quick ? T("rules.quick") : "", onchange: e => { r.note = e.target.value; onChange(); } })),
         hits,
-        el("td", {}, el("button", { class: "icon danger", title: "Regel löschen", onclick: () => { rules.splice(i, 1); onStructure(); } }, "✕"))
+        el("td", {}, el("button", { class: "icon danger", title: T("rules.delete"), onclick: () => { rules.splice(i, 1); onStructure(); } }, "✕"))
       ));
     });
 
     if (!rules.length) {
-      body.append(el("tr", {}, el("td", { colspan: cookies ? 11 : 10, class: "empty" }, "Keine Cookie-Regeln. Reihenfolge = Priorität, die erste passende Regel gewinnt.")));
+      body.append(el("tr", {}, el("td", { colspan: cookies ? 11 : 10, class: "empty" }, T("rules.empty"))));
     }
 
     wrap.append(
       el("div", { class: "table-scroll" }, el("table", { class: "grid" }, el("thead", {}, head), body)),
       el("div", { class: "row-actions" },
-        el("button", { class: "btn", onclick: () => { rules.push(CC.newRule({ name: "", match: "exact" })); onStructure(); } }, opts.addLabel || "+ Cookie-Regel"),
-        el("span", { class: "hint" }, "Typ glob: * und ? als Platzhalter · regex: /muster/flags · Gross-/Kleinschreibung bei glob ignoriert"))
+        el("button", { class: "btn", onclick: () => { rules.push(CC.newRule({ name: "", match: "exact" })); onStructure(); } }, opts.addLabel || T("rules.add")),
+        el("span", { class: "hint" }, T("rules.hint")))
     );
     return wrap;
   }
@@ -179,14 +180,14 @@
   function entryRuleTable(rules, opts) {
     const { onChange, onStructure, live = null } = opts;
     const head = el("tr", {},
-      el("th", { title: "Priorität – oberste passende Regel gewinnt" }, "#"),
-      el("th", { title: "Aktiv" }, "An"),
-      el("th", {}, "Typ"),
-      el("th", {}, "Name"),
-      el("th", { title: "In welchem Speicher die Regel gilt" }, "Speicher"),
-      el("th", {}, "Aktion"),
-      el("th", {}, "Notiz"),
-      el("th", { title: "Treffer unter den aktuellen Einträgen (nur bei offenem Tab)" }, "Treffer"),
+      el("th", { title: T("rules.priority") }, "#"),
+      el("th", { title: T("rules.enabledTitle") }, T("rules.enabled")),
+      el("th", {}, T("rules.type")),
+      el("th", {}, T("rules.name")),
+      el("th", { title: T("entryRules.storeTitle") }, T("entryRules.store")),
+      el("th", {}, T("rules.action")),
+      el("th", {}, T("rules.note")),
+      el("th", { title: T("entryRules.hitsTitle") }, T("rules.hits")),
       el("th", {}, ""));
     const body = el("tbody");
     rules.forEach((r, i) => {
@@ -197,7 +198,7 @@
       const validate = () => {
         const err = r.match === "regex" ? CC.validateRegex(r.name) : null;
         nameInput.classList.toggle("invalid", !!err);
-        nameInput.title = err ? "Ungültiger RegExp: " + err : "";
+        nameInput.title = err ? T("rules.invalidRegex", { err }) : "";
       };
       validate();
       let hits = "—";
@@ -208,23 +209,23 @@
       }
       body.append(el("tr", { class: r.enabled ? "" : "disabled" },
         el("td", { class: "order" },
-          el("button", { class: "icon", title: "nach oben", disabled: i === 0, onclick: () => { rules.splice(i - 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▲"),
-          el("button", { class: "icon", title: "nach unten", disabled: i === rules.length - 1, onclick: () => { rules.splice(i + 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▼")),
+          el("button", { class: "icon", title: T("rules.up"), disabled: i === 0, onclick: () => { rules.splice(i - 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▲"),
+          el("button", { class: "icon", title: T("rules.down"), disabled: i === rules.length - 1, onclick: () => { rules.splice(i + 1, 0, rules.splice(i, 1)[0]); onStructure(); } }, "▼")),
         el("td", {}, el("input", { type: "checkbox", checked: r.enabled, onchange: e => { r.enabled = e.target.checked; onStructure(); } })),
-        el("td", {}, select([["exact", "exakt"], ["glob", "glob"], ["regex", "regex"]], r.match, v => { r.match = v; validate(); onChange(); })),
+        el("td", {}, select([["exact", T("rules.exact")], ["glob", "glob"], ["regex", "regex"]], r.match, v => { r.match = v; validate(); onChange(); })),
         el("td", {}, nameInput),
-        el("td", {}, select([["both", "beide"], ["local", "localStorage"], ["session", "sessionStorage"]], r.store, v => { r.store = v; onChange(); })),
-        el("td", {}, select([["keep", "Behalten"], ["delete", "Löschen"]], r.action, v => { r.action = v; onChange(); }, { class: "act-" + r.action })),
-        el("td", {}, el("input", { value: r.note || "", placeholder: r.quick ? "Schnellregel" : "", onchange: e => { r.note = e.target.value; onChange(true); } })),
+        el("td", {}, select([["both", T("entryRules.both")], ["local", "localStorage"], ["session", "sessionStorage"]], r.store, v => { r.store = v; onChange(); })),
+        el("td", {}, select([["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete]], r.action, v => { r.action = v; onChange(); }, { class: "act-" + r.action })),
+        el("td", {}, el("input", { value: r.note || "", placeholder: r.quick ? T("rules.quick") : "", onchange: e => { r.note = e.target.value; onChange(true); } })),
         el("td", { class: "num " + (hits === "0" || hits === "—" ? "muted" : "") }, hits),
-        el("td", {}, el("button", { class: "icon danger", title: "Regel löschen", onclick: () => { rules.splice(i, 1); onStructure(); } }, "✕"))));
+        el("td", {}, el("button", { class: "icon danger", title: T("rules.delete"), onclick: () => { rules.splice(i, 1); onStructure(); } }, "✕"))));
     });
-    if (!rules.length) body.append(el("tr", {}, el("td", { colspan: 9, class: "empty" }, "Keine Eintragsregeln. Reihenfolge = Priorität, die erste passende Regel gewinnt; sonst gilt „Standard für übrige Einträge“.")));
+    if (!rules.length) body.append(el("tr", {}, el("td", { colspan: 9, class: "empty" }, T("entryRules.empty"))));
     return el("div", { class: "rules" },
       el("div", { class: "table-scroll" }, el("table", { class: "grid" }, el("thead", {}, head), body)),
       el("div", { class: "row-actions" },
-        el("button", { class: "btn", onclick: () => { rules.push(CC.newKeyRule({ name: "", match: "exact" })); onStructure(); } }, "+ Eintragsregel"),
-        el("span", { class: "hint" }, "Typ glob: * und ? als Platzhalter · regex: /muster/flags · greift nur, wenn localStorage bzw. sessionStorage auf „Selektiv“ steht")));
+        el("button", { class: "btn", onclick: () => { rules.push(CC.newKeyRule({ name: "", match: "exact" })); onStructure(); } }, T("entryRules.add")),
+        el("span", { class: "hint" }, T("entryRules.hint"))));
   }
 
   function field(label, ctrl, help) {
@@ -249,8 +250,8 @@
 
   function historyButtons(opts) {
     const compact = opts && opts.compact;
-    const undoBtn = el("button", { class: "btn hist", type: "button", disabled: true }, compact ? "↶" : "↶ Rückgängig");
-    const redoBtn = el("button", { class: "btn hist", type: "button", disabled: true }, compact ? "↷" : "↷ Wiederholen");
+    const undoBtn = el("button", { class: "btn hist", type: "button", disabled: true }, compact ? "↶" : T("hist.undo"));
+    const redoBtn = el("button", { class: "btn hist", type: "button", disabled: true }, compact ? "↷" : T("hist.redo"));
     const wrap = el("span", { class: "history-buttons" }, undoBtn, redoBtn);
 
     const refresh = async () => {
@@ -259,12 +260,12 @@
       if (!st) return;
       undoBtn.disabled = !st.undo;
       redoBtn.disabled = !st.redo;
-      undoBtn.title = st.undo ? `Rückgängig: ${st.undoLabel} (vor ${CC.fmtAgo(st.undoTime)}) · ${st.undo} Schritt(e) · Strg+Z` : "Nichts rückgängig zu machen";
-      redoBtn.title = st.redo ? `Wiederholen: ${st.redoLabel} · ${st.redo} Schritt(e) · Strg+Y / Strg+Umschalt+Z` : "Nichts zu wiederholen";
+      undoBtn.title = st.undo ? T("hist.undoTitle", { label: st.undoLabel, ago: CC.fmtAgo(st.undoTime), n: st.undo }) : T("hist.nothingUndo");
+      redoBtn.title = st.redo ? T("hist.redoTitle", { label: st.redoLabel, n: st.redo }) : T("hist.nothingRedo");
     };
     const run = async (cmd) => {
       const r = await browser.runtime.sendMessage({ cmd });
-      if (r && r.applied) toast((cmd === "undo" ? "Rückgängig: " : "Wiederholt: ") + r.applied);
+      if (r && r.applied) toast(T(cmd === "undo" ? "hist.undone" : "hist.redone", { label: r.applied }));
       refresh();
     };
     undoBtn.addEventListener("click", () => run("undo"));
@@ -287,16 +288,13 @@
   /* Archiv-Tabelle (Seiten-Editor + Dashboard)                          */
   /* ------------------------------------------------------------------ */
 
-  const STATUS = {
-    same: ["identisch", "a-keep", "Aktuelles Cookie hat denselben Wert"],
-    differs: ["abweichend", "a-delete", "Aktuelles Cookie hat einen anderen Wert"],
-    missing: ["fehlt", "a-block", "Cookie ist aktuell nicht vorhanden"]
-  };
+  const STATUS_CLASS = { same: "a-keep", differs: "a-delete", missing: "a-block" };
+  const status = k => [T("archive." + k), STATUS_CLASS[k], T("archive." + k + "Title")];
 
   async function restoreAids(aids) {
     const r = await browser.runtime.sendMessage({ cmd: "restore", aids });
-    if (r.failed.length) toast(`${r.ok.length} zurückgeholt, ${r.failed.length} fehlgeschlagen: ${r.failed[0].name} – ${r.failed[0].error}`, "err");
-    else toast(`${r.ok.length} Cookie(s) zurückgeholt`);
+    if (r.failed.length) toast(T("archive.restoreFailed", { ok: r.ok.length, failed: r.failed.length, name: r.failed[0].name, error: r.failed[0].error }), "err");
+    else toast(T("archive.restored", { n: r.ok.length }));
     return r;
   }
 
@@ -315,48 +313,48 @@
     const cols = 9 + (showSite ? 1 : 0) + (compact ? -2 : 1);
 
     const allBox = el("input", {
-      type: "checkbox", title: "Alle auswählen", checked: sorted.length > 0 && sorted.every(e => selected.has(e.aid)),
+      type: "checkbox", title: T("archive.selectAll"), checked: sorted.length > 0 && sorted.every(e => selected.has(e.aid)),
       onchange: ev => { for (const e of sorted) ev.target.checked ? selected.add(e.aid) : selected.delete(e.aid); opts.onSelect && opts.onSelect(); }
     });
 
     const body = el("tbody", {}, sorted.map(e => {
       const c = e.cookie;
-      const st = STATUS[CC.archiveStatus(e, currentById)];
+      const st = status(CC.archiveStatus(e, currentById));
       const versions = perKey.get(e.key);
       return el("tr", { class: e.autoRestore ? "autorestore" : "" },
         el("td", {}, el("input", { type: "checkbox", checked: selected.has(e.aid), onchange: ev => { ev.target.checked ? selected.add(e.aid) : selected.delete(e.aid); opts.onSelect && opts.onSelect(); } })),
-        el("td", { title: "Beim Browserstart auf diese Version zurücksetzen (pro Cookie nur eine Version)" },
-          el("label", { class: "autostart" }, el("input", { type: "checkbox", checked: e.autoRestore, onchange: ev => update(e.aid, { autoRestore: ev.target.checked }) }), compact ? "" : " Start")),
+        el("td", { title: T("archive.autostartTitle") },
+          el("label", { class: "autostart" }, el("input", { type: "checkbox", checked: e.autoRestore, onchange: ev => update(e.aid, { autoRestore: ev.target.checked }) }), compact ? "" : T("archive.start"))),
         showSite ? el("td", { class: "mono" }, el("a", { href: "#site/" + encodeURIComponent(e.site) }, e.site)) : null,
-        el("td", { class: "name" }, el("code", {}, c.name), versions > 1 ? el("span", { class: "badge", title: versions + " Versionen archiviert" }, "v" + versionNo.get(e.aid) + "/" + versions) : null,
+        el("td", { class: "name" }, el("code", {}, c.name), versions > 1 ? el("span", { class: "badge", title: T("archive.versions", { n: versions }) }, "v" + versionNo.get(e.aid) + "/" + versions) : null,
           c.partitionKey ? el("span", { class: "badge c-3p" }, "Part") : null),
         el("td", { class: "mono dim", title: c.domain + c.path }, c.domain, compact ? "" : c.path !== "/" ? c.path : ""),
         compact ? null : el("td", { class: "dim" }, containers[c.storeId] || c.storeId),
-        el("td", { class: "num", title: new Date(e.savedAt).toLocaleString("de-CH") }, CC.fmtAgo(e.savedAt)),
-        el("td", { class: "num", title: c.session ? "Sitzungscookie" : CC.fmtDate(c.expirationDate) }, CC.fmtExpiry(c)),
+        el("td", { class: "num", title: new Date(e.savedAt).toLocaleString(T("fmt.locale")) }, CC.fmtAgo(e.savedAt)),
+        el("td", { class: "num", title: c.session ? T("archive.sessionCookie") : CC.fmtDate(c.expirationDate) }, CC.fmtExpiry(c)),
         el("td", { class: "val" }, compact
           ? el("span", { class: "mono dim", title: c.value }, c.value.length > 28 ? c.value.slice(0, 28) + "…" : c.value)
-          : el("input", { class: "mono", value: c.value, spellcheck: "false", title: "Archivierten Wert bearbeiten (wirkt beim nächsten Zurückholen)", onchange: ev => update(e.aid, { value: ev.target.value }) })),
+          : el("input", { class: "mono", value: c.value, spellcheck: "false", title: T("archive.editValue"), onchange: ev => update(e.aid, { value: ev.target.value }) })),
         el("td", {}, el("span", { class: "pill " + st[1], title: st[2] }, st[0])),
-        compact ? null : el("td", {}, el("input", { value: e.note || "", placeholder: "Notiz", onchange: ev => update(e.aid, { note: ev.target.value }) })),
+        compact ? null : el("td", {}, el("input", { value: e.note || "", placeholder: T("archive.note"), onchange: ev => update(e.aid, { note: ev.target.value }) })),
         el("td", { class: "nowrap" },
-          el("button", { class: "btn small", title: "Cookie mit diesem Stand jetzt setzen", onclick: () => restoreAids([e.aid]) }, "Zurückholen"),
-          el("button", { class: "icon danger", title: "Aus dem Archiv entfernen", onclick: () => browser.runtime.sendMessage({ cmd: "archiveRemove", aids: [e.aid] }) }, "✕"))
+          el("button", { class: "btn small", title: T("archive.restoreTitle"), onclick: () => restoreAids([e.aid]) }, T("archive.restore")),
+          el("button", { class: "icon danger", title: T("archive.removeTitle"), onclick: () => browser.runtime.sendMessage({ cmd: "archiveRemove", aids: [e.aid] }) }, "✕"))
       );
     }));
-    if (!sorted.length) body.append(el("tr", {}, el("td", { colspan: cols, class: "empty" }, "Archiv ist leer. Cookies über die Auswahl oder die Detailansicht archivieren.")));
+    if (!sorted.length) body.append(el("tr", {}, el("td", { colspan: cols, class: "empty" }, T("archive.empty"))));
 
     return el("div", { class: "table-scroll archive-scroll" },
       el("table", { class: "grid archive-table" },
         el("thead", {}, el("tr", {},
           el("th", {}, allBox),
-          el("th", { title: "Autostart: beim Browserstart zurücksetzen" }, "⟲"),
-          showSite ? el("th", {}, "Seite") : null,
-          el("th", {}, "Name"), el("th", {}, "Domain"),
-          compact ? null : el("th", {}, "Container"),
-          el("th", {}, "Archiviert"), el("th", { title: "Ablauf laut archivierter Version" }, "Ablauf"),
-          el("th", {}, "Wert"), el("th", { title: "Vergleich mit dem aktuellen Cookie" }, "Aktuell"),
-          compact ? null : el("th", {}, "Notiz"),
+          el("th", { title: T("archive.autostartHead") }, "⟲"),
+          showSite ? el("th", {}, T("archive.site")) : null,
+          el("th", {}, T("rules.name")), el("th", {}, T("rules.domain")),
+          compact ? null : el("th", {}, T("rules.container")),
+          el("th", {}, T("archive.archived")), el("th", { title: T("archive.expiryTitle") }, T("archive.expiry")),
+          el("th", {}, T("archive.value")), el("th", { title: T("archive.currentTitle") }, T("archive.current")),
+          compact ? null : el("th", {}, T("archive.note")),
           el("th", {}, ""))),
         body));
   }
@@ -364,24 +362,23 @@
   function archiveBulkBar(selected, after) {
     const n = selected.size;
     return el("div", { class: "toolbar bulk" + (n ? "" : " idle") },
-      el("span", { class: "dim" }, n ? `${n} ausgewählt` : "Keine Auswahl"),
-      el("button", { class: "btn", disabled: !n, onclick: async () => { await restoreAids([...selected]); selected.clear(); after(); } }, "Auswahl zurückholen"),
-      n ? confirmButton("Aus Archiv entfernen", `${n} entfernen?`, async () => {
+      el("span", { class: "dim" }, n ? T("archive.selected", { n }) : T("archive.noSelection")),
+      el("button", { class: "btn", disabled: !n, onclick: async () => { await restoreAids([...selected]); selected.clear(); after(); } }, T("archive.restoreSelection")),
+      n ? confirmButton(T("archive.remove"), T("archive.removeConfirm", { n }), async () => {
         const k = await browser.runtime.sendMessage({ cmd: "archiveRemove", aids: [...selected] });
-        selected.clear(); toast(`${k} Einträge entfernt`); after();
+        selected.clear(); toast(T("archive.removed", { n: k })); after();
       }, "danger") : null);
   }
 
   /* „Alles löschen“ für eine Seite inkl. Prüfung, ob die Seite gleich wieder Daten setzt */
   function purgeButton(site, after, opts) {
-    return confirmButton((opts && opts.label) || "Alles löschen", "Wirklich alles löschen?", async () => {
+    return confirmButton((opts && opts.label) || T("purge.label"), T("purge.confirm"), async () => {
       const r = await browser.runtime.sendMessage({ cmd: "purgeSite", site });
-      toast(`${site}: ${r.cookies} Cookies und Website-Daten gelöscht` + (r.configRemoved ? ", Konfiguration entfernt (↶ holt sie zurück)" : ""), "", 5000);
+      toast(T("purge.done", { site, n: r.cookies }) + (r.configRemoved ? T("purge.configRemoved") : ""), "", 5000);
       await new Promise(res => setTimeout(res, 1500));
       const back = await CC.getCookiesForSite(site);
       if (back.length) {
-        toast(`${site}: ${back.length} Cookie(s) wurden sofort wieder gesetzt – die Seite läuft noch (offener Tab oder eingebettet, z. B. in einer Seitenleiste). ` +
-          "Seite schliessen und erneut „Alles löschen“.", "warn", 12000);
+        toast(T("purge.back", { site, n: back.length }), "warn", 12000);
       }
       if (after) after(r, back);
     }, "danger " + ((opts && opts.cls) || ""), "purge:" + site);
@@ -829,7 +826,7 @@
       return el("div", { class: "versions" },
         el("div", { class: "dim", style: "margin:8px 0 4px" }, `Archivierte Versionen (${versions.length})`),
         el("table", { class: "grid" }, el("tbody", {}, versions.map(e => el("tr", { class: e.autoRestore ? "autorestore" : "" },
-          el("td", { class: "num", title: new Date(e.savedAt).toLocaleString("de-CH") }, new Date(e.savedAt).toLocaleString("de-CH")),
+          el("td", { class: "num", title: new Date(e.savedAt).toLocaleString(T("fmt.locale")) }, new Date(e.savedAt).toLocaleString("de-CH")),
           el("td", { class: "mono val", title: e.cookie.value }, e.cookie.value === c.value ? el("span", { class: "pill a-keep" }, "= aktuell") : (e.cookie.value.length > 60 ? e.cookie.value.slice(0, 60) + "…" : e.cookie.value)),
           el("td", {}, el("label", { class: "autostart", title: "Beim Browserstart auf diese Version zurücksetzen" },
             el("input", { type: "checkbox", checked: e.autoRestore, onchange: ev => browser.runtime.sendMessage({ cmd: "archiveUpdate", aid: e.aid, patch: { autoRestore: ev.target.checked } }) }), " beim Start")),
