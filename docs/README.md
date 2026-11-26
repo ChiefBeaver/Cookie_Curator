@@ -5,7 +5,7 @@ Firefox-Interna man kennen muss**, um es zu verstehen oder weiterzuentwickeln. S
 Entwickler; die Bedienung für Endanwender steht im Dashboard unter *Funktionsweise* und in der
 `README.md` im Hauptordner.
 
-Stand: Version **0.7.0**, getestet mit **Firefox 140 ESR** (Mindestversion laut Manifest).
+Stand: Version **0.8.0**, getestet mit **Firefox 153 ESR** (Mindestversion laut Manifest: Firefox 140).
 
 ## Inhalt
 
