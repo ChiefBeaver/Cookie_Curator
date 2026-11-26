@@ -156,7 +156,7 @@ löscht ein Aufruf mit `hostnames: ["nzz.ch"]` auch partitionierte Daten von `nz
 Iframe auf anderen Seiten liegen – aber **nicht** Iframe-Daten fremder Hosts unter `nzz.ch`.
 
 Cache Storage (Client `"cache"`) wird von keinem Typ angesprochen. Das Add-on löscht ihn deshalb
-selbst per Skript in der Seite (siehe [05.7](05-website-daten.md#57-cache-storage-ab-17)).
+selbst per Skript in der Seite (siehe [05.7](05-website-daten.md#57-cache-storage-ab-07)).
 
 ### Service Worker
 
