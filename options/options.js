@@ -1,6 +1,7 @@
 "use strict";
 (function () {
   const { el, select, confirmButton, toast } = UI;
+  const T = I18N.t;
   const view = document.getElementById("view");
   let cfg = null;
   let pendingSaves = [];   // JSON eigener, noch nicht gemeldeter Speicherungen
@@ -107,10 +108,10 @@
       const configured = sc && !CC.isSiteConfigEmpty(sc);
       const go = () => { location.hash = "site/" + encodeURIComponent(r.site); };
       tbody.append(el("tr", {},
-        el("td", { class: "site", onclick: go }, r.site, configured ? el("span", { class: "badge configured", style: "margin-left:6px" }, "konf.") : null),
-        el("td", { title: open.has(r.site) ? "Tab offen" : "" }, open.has(r.site) ? el("span", { class: "dot" }) : ""),
+        el("td", { class: "site", onclick: go }, r.site, configured ? el("span", { class: "badge configured", style: "margin-left:6px" }, T("sites.configuredShort")) : null),
+        el("td", { title: open.has(r.site) ? T("sites.colOpen") : "" }, open.has(r.site) ? el("span", { class: "dot" }) : ""),
         el("td", { class: "num" }, String(r.total)),
-        el("td", { class: "num split", title: `${r.keep} behalten · ${r.delete} löschen · ${r.block} blockiert` },
+        el("td", { class: "num split", title: T("sites.split", { keep: r.keep, del: r.delete, block: r.block }) },
           el("span", { class: "n-keep" }, String(r.keep)), el("span", { class: "sep" }, "·"),
           el("span", { class: r.delete ? "n-del" : "muted" }, String(r.delete)), el("span", { class: "sep" }, "·"),
           el("span", { class: r.block ? "n-block" : "muted" }, String(r.block))),
@@ -120,29 +121,29 @@
           r.tracking ? el("span", { class: "badge c-tracking" }, "T " + r.tracking) : null, " ",
           r.tp ? el("span", { class: "badge c-3p" }, "3P " + r.tp) : null),
         el("td", { class: "dim" }, sc && sc.defaultAction !== "inherit" ? CC.ACTION_LABEL[sc.defaultAction] : "↳ " + CC.ACTION_LABEL[g.defaultAction]),
-        el("td", { class: "dim" }, CC.effectiveTabClose(cfg, r.site) ? "an" : "aus", sc && sc.tabClose !== "inherit" ? "" : " ↳"),
+        el("td", { class: "dim" }, CC.effectiveTabClose(cfg, r.site) ? T("sites.on") : T("sites.off"), sc && sc.tabClose !== "inherit" ? "" : " ↳"),
         el("td", { class: "num" }, sc && sc.rules.length ? String(sc.rules.length) : ""),
         el("td", { class: "dim", title: CC.STORAGE_TYPES.map(t => CC.STORAGE_LABEL[t] + ": " + CC.MODE_LABEL[CC.effectiveStorageMode(cfg, r.site, t)]).join("\n") }, storageShort(r.site)),
         el("td", { class: "note", title: sc ? sc.note : "" }, sc ? sc.note : ""),
         el("td", { class: "actions" },
-          el("button", { class: "btn small", onclick: go }, "Bearbeiten"),
+          el("button", { class: "btn small", onclick: go }, T("sites.edit")),
           UI.purgeButton(r.site, () => renderSites(), { cls: "small" }),
           r.delete + r.block ? el("button", {
-            class: "btn small", title: "Cookies mit Aktion Löschen/Blockieren jetzt entfernen",
-            onclick: async () => { const x = await browser.runtime.sendMessage({ cmd: "cleanSite", site: r.site }); toast(`${x.length} gelöscht`); renderSites(); }
-          }, "Bereinigen") : null)
+            class: "btn small", title: T("sites.cleanTitle"),
+            onclick: async () => { const x = await browser.runtime.sendMessage({ cmd: "cleanSite", site: r.site }); toast(T("sites.deleted", { n: x.length })); renderSites(); }
+          }, T("sites.clean")) : null)
       ));
     }
-    if (!list.length) tbody.append(el("tr", {}, el("td", { colspan: 13, class: "empty" }, "Keine Seiten gefunden.")));
+    if (!list.length) tbody.append(el("tr", {}, el("td", { colspan: 13, class: "empty" }, T("sites.none"))));
 
     const addInput = el("input", { placeholder: "domain.ch", class: "mono", style: "width:160px" });
     const previewBox = el("div");
-    const modes = [["all", "Alle"], ["configured", "Konfiguriert"], ["unconfigured", "Unkonfiguriert"], ["open", "Offene Tabs"], ["pending", "Mit Löschkandidaten"]];
+    const modes = [["all", T("sites.modeAll")], ["configured", T("sites.modeConfigured")], ["unconfigured", T("sites.modeUnconfigured")], ["open", T("sites.modeOpen")], ["pending", T("sites.modePending")]];
 
     view.textContent = "";
     view.append(
-      pageHead("Seiten",
-        el("span", { class: "dim" }, `${all.length} Cookies auf ${rows.size} Seiten`),
+      pageHead(T("sites.title"),
+        el("span", { class: "dim" }, T("sites.count", { cookies: all.length, sites: rows.size })),
         addInput,
         el("button", {
           class: "btn", onclick: () => {
@@ -150,34 +151,34 @@
             if (!v) return;
             CC.getSite(cfg, v, true); location.hash = "site/" + encodeURIComponent(v);
           }
-        }, "Seite konfigurieren")),
+        }, T("sites.configure"))),
       el("div", { class: "card" },
         el("div", { class: "toolbar" },
-          el("input", { type: "search", placeholder: "Seite filtern …", value: state.sitesFilter, oninput: e => { state.sitesFilter = e.target.value; renderSitesDebounced(); } }),
+          el("input", { type: "search", placeholder: T("sites.filter"), value: state.sitesFilter, oninput: e => { state.sitesFilter = e.target.value; renderSitesDebounced(); } }),
           el("div", { class: "chips" }, modes.map(([v, l]) => el("button", { class: "chip" + (state.sitesMode === v ? " on" : ""), onclick: () => { state.sitesMode = v; renderSites(); } }, l))),
           el("span", { class: "spacer" }),
           el("button", {
             class: "btn", onclick: async () => {
               const x = await browser.runtime.sendMessage({ cmd: "cleanAll", dryRun: true, skipOpen: g.skipOpenSites });
               previewBox.textContent = "";
-              previewBox.append(previewTable(x, "Vorschau: diese Cookies würden gelöscht" + (g.skipOpenSites ? " (Seiten mit offenen Tabs ausgenommen)" : "")));
+              previewBox.append(previewTable(x, T("sites.previewTitle") + (g.skipOpenSites ? T("sites.previewSkip") : "")));
             }
-          }, "Alles bereinigen – Vorschau"),
-          confirmButton("Alles bereinigen", "Wirklich ausführen?", async () => {
+          }, T("sites.preview")),
+          confirmButton(T("sites.cleanAll"), T("sites.cleanAllConfirm"), async () => {
             const x = await browser.runtime.sendMessage({ cmd: "cleanAll", skipOpen: g.skipOpenSites });
-            toast(`${x.length} Cookie(s) gelöscht`);
+            toast(T("sites.cleanedCookies", { n: x.length }));
             renderSites();
           }, "primary")),
         el("div", { class: "table-scroll cookies-scroll" },
           el("table", { class: "grid overview" },
             el("thead", {}, el("tr", {},
-              th("site", "Seite"), el("th", { title: "Tab offen" }, "●"), th("total", "Cookies"),
-              el("th", { class: "num split-head", title: "Behalten · Löschen · Blockiert – zum Sortieren auf einen der drei Begriffe klicken" },
-                ...[["keep", "Beh."], ["delete", "Lösch."], ["block", "Block"]].flatMap(([k, l], i) => [i ? el("span", { class: "sep" }, "·") : null,
+              th("site", T("sites.colSite")), el("th", { title: T("sites.colOpen") }, "●"), th("total", T("sites.colCookies")),
+              el("th", { class: "num split-head", title: T("sites.colSplitTitle") },
+                ...[["keep", T("sites.colKeep")], ["delete", T("sites.colDelete")], ["block", T("sites.colBlock")]].flatMap(([k, l], i) => [i ? el("span", { class: "sep" }, "·") : null,
                   el("span", { class: "sortable" + (key === k ? " sorted" : ""), onclick: () => { state.sitesSort = { key: k, dir: key === k ? -dir : -1 }; renderSites(); } }, l, key === k ? (dir > 0 ? "▴" : "▾") : "")])),
-              el("th", { title: "Cookie-Kategorien: C = Consent, L = Login/Session, T = Tracking, 3P = partitionierte Drittanbieter" }, "Cookie-Kategorien"),
-              el("th", { title: "Standard für übrige Cookies · ↳ = geerbt" }, "Cookie-Standard"), el("th", {}, "Tab-Schliessen"),
-              el("th", { title: "Cookie-Regeln der Seite" }, "Cookie-Regeln"), el("th", { title: "Website-Daten: L=localStorage S=sessionStorage I=IndexedDB A=Cache Storage (Cache API) W=Service Worker H=HTTP-Cache · ✕ löschen, ◐ selektiv" }, "Website-Daten"), el("th", {}, "Notiz"), el("th", {}, ""))),
+              el("th", { title: T("sites.colCatTitle") }, T("sites.colCat")),
+              el("th", { title: T("sites.colDefaultTitle") }, T("sites.colDefault")), el("th", {}, T("sites.colTabClose")),
+              el("th", { title: T("sites.colRulesTitle") }, T("sites.colRules")), el("th", { title: T("sites.colDataTitle") }, T("sites.colData")), el("th", {}, T("sites.colNote")), el("th", {}, ""))),
             tbody))),
       previewBox
     );
@@ -206,11 +207,11 @@
       el("h3", {}, `${title} – ${list.length}`),
       el("div", { class: "table-scroll preview-list" },
         el("table", { class: "grid" },
-          el("thead", {}, el("tr", {}, el("th", {}, "Seite"), el("th", {}, "Name"), el("th", {}, "Domain"), el("th", {}, "Pfad"), el("th", {}, "Begründung"))),
+          el("thead", {}, el("tr", {}, el("th", {}, T("sites.colSite")), el("th", {}, T("rules.name")), el("th", {}, T("rules.domain")), el("th", {}, T("rules.path")), el("th", {}, T("ck.reason")))),
           el("tbody", {}, list.length ? list.map(x => el("tr", {},
-            el("td", { class: "mono" }, x.site), el("td", { class: "mono" }, x.name, x.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, "Website-Daten") : null), el("td", { class: "mono dim", title: x.domain }, x.domain.length > 60 ? x.domain.slice(0, 60) + "…" : x.domain),
+            el("td", { class: "mono" }, x.site), el("td", { class: "mono" }, x.name, x.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, T("sites.siteData")) : null), el("td", { class: "mono dim", title: x.domain }, x.domain.length > 60 ? x.domain.slice(0, 60) + "…" : x.domain),
             el("td", { class: "mono dim" }, x.path), el("td", { class: "reason dim" }, x.reason)))
-            : el("tr", {}, el("td", { colspan: 5, class: "empty" }, "Nichts zu löschen."))))));
+            : el("tr", {}, el("td", { colspan: 5, class: "empty" }, T("sites.nothing")))))));
   }
 
   /* ================================================================== */
@@ -220,12 +221,12 @@
   async function renderSite(site) {
     const box = el("div");
     view.append(
-      pageHead(el("span", {}, "Seite ", el("code", {}, site)),
-        el("a", { href: "https://" + site, target: "_blank", rel: "noopener", class: "btn" }, "Seite öffnen ↗"),
-        confirmButton("Seiten-Konfiguration entfernen", "Wirklich entfernen?", async () => {
-          delete cfg.sites[site]; await save(); toast("Konfiguration entfernt"); location.hash = "sites";
+      pageHead(el("span", {}, T("siteView.site"), el("code", {}, site)),
+        el("a", { href: "https://" + site, target: "_blank", rel: "noopener", class: "btn" }, T("siteView.open")),
+        confirmButton(T("siteView.remove"), T("siteView.removeConfirm"), async () => {
+          delete cfg.sites[site]; await save(); toast(T("siteView.removed")); location.hash = "sites";
         }, "danger"),
-        el("a", { href: "#sites", class: "btn" }, "← Übersicht")),
+        el("a", { href: "#sites", class: "btn" }, T("siteView.back"))),
       box);
     const ed = new UI.SiteEditor(box, { site, compact: false });
     ed.onPurged = () => { location.hash = "sites"; };
@@ -245,8 +246,7 @@
       wrap.textContent = "";
       wrap.append(
         el("p", { class: "hint", style: "margin:0 0 8px" },
-          "Gelten für alle Seiten, nach den Cookie-Regeln der Seite und vor den Kategorien. Treffer = Anzahl aktueller Cookies (alle Seiten). ",
-          "Beispiel: ", el("code", {}, "glob _ga* → Blockieren"), " entfernt Google Analytics überall sofort."),
+          T("grules.hint"), T("grules.example"), el("code", {}, T("grules.exampleRule")), T("grules.exampleText")),
         UI.ruleTable(cfg.globalRules, {
           containers, cookies: all,
           onChange: () => save(),
@@ -255,7 +255,7 @@
     };
     draw();
     view.textContent = "";
-    view.append(pageHead("Globale Cookie-Regeln"), wrap);
+    view.append(pageHead(T("grules.title")), wrap);
   }
 
   /* ================================================================== */
@@ -464,7 +464,7 @@
               el("td", { class: "num" }, new Date(e.t).toLocaleString("de-CH")),
               el("td", {}, trig[e.trigger] || e.trigger),
               el("td", { class: "mono" }, el("a", { href: "#site/" + encodeURIComponent(e.site) }, e.site)),
-              el("td", { class: "mono" }, e.name, e.partitioned ? el("span", { class: "badge c-3p" }, "Part") : null, e.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, "Website-Daten") : null),
+              el("td", { class: "mono" }, e.name, e.partitioned ? el("span", { class: "badge c-3p" }, "Part") : null, e.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, T("sites.siteData")) : null),
               el("td", { class: "mono dim" }, e.domain),
               el("td", { class: "mono dim" }, e.path),
               el("td", { class: "dim" }, containers[e.storeId] || e.storeId),
