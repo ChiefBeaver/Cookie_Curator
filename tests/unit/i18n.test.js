@@ -75,6 +75,8 @@ module.exports = [
       for (const k of ["tocAddon", "tocBasics", "titleAddon", "introAddon", "titleBasics", "introBasics"]) assert.ok(r.text[k], file + ": text." + k);
       return { addon: r.addon.map(c => c[0]), basics: r.basics.map(c => c[0]) };
     };
+    const files = fs.readdirSync(dir).filter(f => f.endsWith(".js")).map(f => f.replace(/\.js$/, "")).sort();
+    assert.deepEqual([...fresh().EXTRAS.help].sort(), files, "EXTRAS.help in lib/i18n.js passt nicht zu locales/help/");
     const en = chapters("en.js");
     assert.ok(en.addon.length && en.basics.length);
     for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".js"))) {

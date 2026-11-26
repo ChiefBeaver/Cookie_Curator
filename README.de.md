@@ -43,9 +43,11 @@ im Dashboard wechselt reihum zur nächsten Sprache; die Wahl gilt für alle Fens
 1. `locales/en.js` nach `locales/fr.js` kopieren, darin `I18N.register("en", …)` auf `"fr"` ändern
    und die Texte übersetzen. Platzhalter wie `{n}` oder `{site}` unverändert lassen.
 2. In `lib/i18n.js` bei `LANGUAGES` die Zeile `fr: "Français"` ergänzen.
-3. Optional: Hilfe-Tab übersetzen – `locales/help/en.js` nach `locales/help/fr.js` kopieren (sonst erscheint die englische Hilfe).
+3. Optional: Hilfe-Tab übersetzen – `locales/help/en.js` nach `locales/help/fr.js` kopieren, übersetzen und `"fr"`
+   in `lib/i18n.js` bei `EXTRAS.help` ergänzen (sonst erscheint die englische Hilfe).
 4. Optional: Beschreibung im Add-on-Manager – `_locales/fr/messages.json` anlegen.
-5. `npm run test:unit` im Ordner `tests` prüft, dass die neue Datei genau dieselben Schlüssel wie `en.js` hat.
+5. `npm run test:unit` im Ordner `tests` prüft, dass die neue Datei genau dieselben Schlüssel wie `en.js` hat
+   (und eine Hilfedatei dieselben Kapitel).
 
 Fehlt ein Text in einer Sprache, erscheint der englische.
 

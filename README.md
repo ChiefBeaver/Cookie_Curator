@@ -43,9 +43,11 @@ popup and the dashboard switches to the next language in turn; the choice applie
 1. Copy `locales/en.js` to `locales/fr.js`, change `I18N.register("en", …)` in it to `"fr"`
    and translate the texts. Leave placeholders such as `{n}` or `{site}` unchanged.
 2. Add the line `fr: "Français"` to `LANGUAGES` in `lib/i18n.js`.
-3. Optional: translate the help tab – copy `locales/help/en.js` to `locales/help/fr.js` (otherwise the English help is shown).
+3. Optional: translate the help tab – copy `locales/help/en.js` to `locales/help/fr.js`, translate it and add `"fr"`
+   to `EXTRAS.help` in `lib/i18n.js` (otherwise the English help is shown).
 4. Optional: description in the add-ons manager – create `_locales/fr/messages.json`.
-5. `npm run test:unit` in the `tests` folder checks that the new file has exactly the same keys as `en.js`.
+5. `npm run test:unit` in the `tests` folder checks that the new file has exactly the same keys as `en.js`
+   (and that a help file has the same chapters).
 
 If a text is missing in a language, the English one is shown.
 
