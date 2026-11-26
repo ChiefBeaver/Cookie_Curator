@@ -202,7 +202,8 @@ es ins Wiki; Startseite und Seitenleiste verlinken es. Im Repository liegt kein 
 `tools/build_docs.sh ORDNER`, das danach alle Links prüft (`tools/check_wiki.py`); nach dem Hochladen
 prüft der Workflow, dass der PDF-Link im Wiki eine PDF-Datei liefert. Lokal:
 `python tools/build_pdf.py [AUSGABE.pdf]` (braucht `markdown`, `playwright` mit Chromium und Node für
-`npx @mermaid-js/mermaid-cli`; als root startet das Skript Chrome für die Diagramme ohne Sandbox).
+`npx @mermaid-js/mermaid-cli`; Chrome für die Diagramme läuft ohne Sandbox, weil Container und
+GitHub-Runner sie nicht erlauben – gerendert werden nur die eigenen Diagramme).
 
 ## 10.6 Paketieren, Signieren, Installieren
 

@@ -36,13 +36,12 @@ def mermaid(code):
     open(src, "w", encoding="utf-8").write(code)
     cfg = os.path.join(W, "mcfg.json")
     open(cfg, "w", encoding="utf-8").write('{"theme":"neutral","themeVariables":{"fontFamily":"DejaVu Sans","fontSize":"14px"},"flowchart":{"htmlLabels":false}}')
-    extra = []
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
-        # Chrome startet als root (z. B. in Containern) nur ohne Sandbox
-        pcfg = os.path.join(W, "pcfg.json")
-        open(pcfg, "w", encoding="utf-8").write('{"args":["--no-sandbox"]}')
-        extra = ["-p", pcfg]
-    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q"] + extra, check=True)
+    # Chrome für die Diagramme ohne Sandbox: als root (Container) startet er sonst nicht, und auf
+    # Ubuntu ab 23.10 (GitHub-Runner) sperrt AppArmor die dafür nötigen User-Namespaces. Gerendert
+    # werden nur die eigenen Diagramme aus docs/, keine fremden Seiten.
+    pcfg = os.path.join(W, "pcfg.json")
+    open(pcfg, "w", encoding="utf-8").write('{"args":["--no-sandbox"]}')
+    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q", "-p", pcfg], check=True)
     svg = open(dst, "rb").read()
     return f'<div class="diagram"><img src="data:image/svg+xml;base64,{base64.b64encode(svg).decode()}"/></div>'
 
