@@ -79,5 +79,30 @@ I18N.register("de", {
   "change.categories": "Cookie-Kategorien",
   "change.storage": "Website-Daten",
   "change.note": "Notiz",
-  "change.config": "Konfiguration"
+  "change.config": "Konfiguration",
+
+  /* Hintergrund: Protokoll, Fehler, Badge (background.js) */
+  "bg.viaBrowsingData": "{reason} (über browsingData gelöscht)",
+  "bg.purgedAll": "manuell: alles der Seite gelöscht",
+  "bg.partlyLater": "{label} (teils beim nächsten Aufruf)",
+  "bg.siteData": "Website-Daten: {list}",
+  "bg.complete": "{label} (komplett)",
+  "bg.modeDelete": "Website-Daten: Modus Löschen ({scope})",
+  "bg.scopeSite": "Seite",
+  "bg.scopeGlobal": "global",
+  "bg.nowAndLater": " – offene Tabs sofort, übrige Hosts beim nächsten Aufruf",
+  "bg.later": " – beim nächsten Aufruf",
+  "bg.idbCleared": "IndexedDB {db} / {store} (geleert)",
+  "bg.unknownOp": "unbekannte Aktion {op}",
+  "bg.noTab": "kein Tab der Seite offen",
+  "bg.manual": "manuell",
+  "bg.manualBlocked": "manuell (blockiert, läuft nach Schliessen der Verbindung)",
+  "bg.cookieRejected": "Firefox hat das Cookie abgelehnt",
+  "bg.fromArchive": "aus Archiv vom {date}",
+  "bg.badgeTitle": "Cookie Curator – {site}\n{total} Cookies, {pending} werden bei Bereinigung gelöscht",
+  "bg.unknownType": "unbekannte Speicherart {type}",
+  "bg.noSelective": "kein selektiver Modus aktiv",
+  "bg.manualEntry": "manuell: {store}Storage-Eintrag",
+  "bg.entryRule": "{store}Storage-Eintragsregel",
+  "bg.archivedDeleted": "manuell: archiviert und gelöscht"
 });

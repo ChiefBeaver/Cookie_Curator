@@ -16,6 +16,7 @@ let logDirty = false;
 
 const ready = (async function init() {
   await I18N.init();
+  I18N.onChange(() => updateBadgeAll());
   config = await CC.loadConfig();
   CC.setExtraSuffixes(config.settings.extraSuffixes);
   const r = await browser.storage.local.get(CC.LOG_KEY);
@@ -184,7 +185,7 @@ async function deleteList(cookies, trigger, reasons) {
         continue;
       }
     } catch (e) {
-      console.warn("[Cookie Curator] cookies.remove fehlgeschlagen", c, e);
+      console.warn("[Cookie Curator] cookies.remove failed", c, e);
     }
     failed.push(c);
   }
@@ -192,7 +193,7 @@ async function deleteList(cookies, trigger, reasons) {
     const rescued = await forceRemove(failed, cookies);
     for (const c of rescued) {
       removed.push(c);
-      addLog(trigger, c, (reasons ? reasons.get(CC.cookieId(c)) || "" : "") + " (über browsingData gelöscht)");
+      addLog(trigger, c, I18N.t("bg.viaBrowsingData", { reason: reasons ? reasons.get(CC.cookieId(c)) || "" : "" }).trim());
     }
   }
   if (removed.length) updateBadgeAll();
@@ -225,12 +226,12 @@ async function forceRemove(failed, allToDelete) {
     try {
       await browser.browsingData.removeCookies({ hostnames: [host], cookieStoreId: storeId });
     } catch (e) {
-      console.warn("[Cookie Curator] browsingData.removeCookies fehlgeschlagen", host, e);
+      console.warn("[Cookie Curator] browsingData.removeCookies failed", host, e);
       continue;
     }
     for (const x of keep) {
       try { if (!(await browser.cookies.set(CC.restoreDetails(x, 0)))) throw new Error("abgelehnt"); }
-      catch (e) { console.warn("[Cookie Curator] Wiederherstellen nach Ausweichlöschung fehlgeschlagen", x, e); }
+      catch (e) { console.warn("[Cookie Curator] restoring after fallback deletion failed", x, e); }
     }
     setTimeout(() => keep.forEach(x => restoring.delete(CC.cookieId(x))), 2000);
     for (const c of list) if (!(await cookieExists(c))) rescued.push(c);
@@ -310,7 +311,7 @@ function saveHostsSoon() {
  * gemerkte Hosts und (optional) die Seiten-Konfiguration → Seite verschwindet aus der Übersicht */
 async function purgeSite(site, removeConfig) {
   const cookies = await CC.getCookiesForSite(site);
-  const reasons = new Map(cookies.map(c => [CC.cookieId(c), "manuell: alles der Seite gelöscht"]));
+  const reasons = new Map(cookies.map(c => [CC.cookieId(c), I18N.t("bg.purgedAll")]));
   const removed = await deleteList(cookies, "manual", reasons);
   const hostnames = hostsForSite(site, cookies);
   const data = [];
@@ -319,8 +320,8 @@ async function purgeSite(site, removeConfig) {
     catch (e) { console.warn("[Cookie Curator] purge", t, e); }
   }
   const cs = await purgeCacheStorage(site, hostnames);
-  data.push(CC.STORAGE_LABEL.cacheStorage + (cs.later.length ? " (teils beim nächsten Aufruf)" : ""));
-  if (data.length) addLog("manual", { site, name: "Website-Daten: " + data.join(", "), domain: hostnames.join(", ") }, "manuell: alles der Seite gelöscht", "storage");
+  data.push(cs.later.length ? I18N.t("bg.partlyLater", { label: CC.STORAGE_LABEL.cacheStorage }) : CC.STORAGE_LABEL.cacheStorage);
+  if (data.length) addLog("manual", { site, name: I18N.t("bg.siteData", { list: data.join(", ") }), domain: hostnames.join(", ") }, I18N.t("bg.purgedAll"), "storage");
   const openTabs = tabsOfSite(site);
   if (openTabs.length) await runInSiteTabs(site, "try { sessionStorage.clear(); } catch (e) {}");
   siteHosts.delete(site);
@@ -345,10 +346,10 @@ async function cleanStorage(site, trigger, dryRun, cookies) {
   const types = CC.storageDeleteTypes(config, site);
   if (!types.length) return [];
   const hostnames = hostsForSite(site, cookies);
-  const scope = t => (config.sites[site] && config.sites[site].storage && config.sites[site].storage[t] !== "inherit" ? "Seite" : "global");
+  const scope = t => (config.sites[site] && config.sites[site].storage && config.sites[site].storage[t] !== "inherit" ? I18N.t("bg.scopeSite") : I18N.t("bg.scopeGlobal"));
   const row = t => ({
-    site, kind: "storage", name: CC.STORAGE_LABEL[t] + " (komplett)", domain: hostnames.join(", "), path: "",
-    reason: "Website-Daten: Modus Löschen (" + scope(t) + ")"
+    site, kind: "storage", name: I18N.t("bg.complete", { label: CC.STORAGE_LABEL[t] }), domain: hostnames.join(", "), path: "",
+    reason: I18N.t("bg.modeDelete", { scope: scope(t) })
   });
   if (dryRun) return types.map(row);
   const done = [];
@@ -371,7 +372,7 @@ async function cleanStorage(site, trigger, dryRun, cookies) {
   if (types.includes("cacheStorage")) {
     const r = await purgeCacheStorage(site, hostnames);
     const x = row("cacheStorage");
-    if (r.later.length) x.name += r.now.length ? " – offene Tabs sofort, übrige Hosts beim nächsten Aufruf" : " – beim nächsten Aufruf";
+    if (r.later.length) x.name += r.now.length ? I18N.t("bg.nowAndLater") : I18N.t("bg.later");
     logRow(x);
   }
   return done;
@@ -405,7 +406,7 @@ async function purgeCacheStorage(site, hostnames) {
       const tab = await browser.tabs.get(tabId);
       const res = await runMain(tabId, "purgeCaches", []);
       if (res && res.ok) now.add(new URL(tab.url).hostname);
-    } catch (e) { console.warn("[Cookie Curator] Cache Storage im Tab", tabId, e); }
+    } catch (e) { console.warn("[Cookie Curator] Cache Storage in tab", tabId, e); }
   }
   const later = [];
   for (const h of new Set(hostnames.map(hostnameOf))) {
@@ -441,7 +442,7 @@ function registerCachePurge() {
     try {
       const reg = await browser.scripting.getRegisteredContentScripts({ ids: ["cc-cache-purge"] });
       if (reg.length) await browser.scripting.unregisterContentScripts({ ids: ["cc-cache-purge"] });
-    } catch (e) { console.warn("[Cookie Curator] Cache-Skript abmelden", e); }
+    } catch (e) { console.warn("[Cookie Curator] unregistering cache script", e); }
     const hosts = [...cachePurgeHosts.keys()];
     if (!hosts.length) return;
     try {
@@ -449,7 +450,7 @@ function registerCachePurge() {
         id: "cc-cache-purge", js: ["page/cache-purge.js"], matches: hosts.map(h => `*://${h}/*`),
         runAt: "document_start", world: "MAIN", allFrames: false, persistAcrossSessions: false
       }]);
-    } catch (e) { console.warn("[Cookie Curator] Cache-Skript registrieren", e); }
+    } catch (e) { console.warn("[Cookie Curator] registering cache script", e); }
   }).catch(() => {});
   return cachePurgeQueue;
 }
@@ -522,18 +523,18 @@ async function inspectStorage(site) {
 
 const ITEM_OPS = {
   deleteIdb: { label: a => "IndexedDB " + a[0] },
-  clearIdbStore: { label: a => "IndexedDB " + a[0] + " / " + a[1] + " (geleert)" },
+  clearIdbStore: { label: a => I18N.t("bg.idbCleared", { db: a[0], store: a[1] }) },
   deleteCache: { label: a => "Cache " + a[0] },
   deleteCacheEntry: { label: a => "Cache " + a[0] + ": " + a[1] },
   unregisterSw: { label: a => "Service Worker " + a[0] }
 };
 
 async function storageItem(site, op, args) {
-  if (!ITEM_OPS[op]) throw new Error("unbekannte Aktion " + op);
+  if (!ITEM_OPS[op]) throw new Error(I18N.t("bg.unknownOp", { op }));
   const tabId = await preferredTab(site);
-  if (tabId == null) return { ok: false, error: "kein Tab der Seite offen" };
+  if (tabId == null) return { ok: false, error: I18N.t("bg.noTab") };
   const res = await runMain(tabId, op, args);
-  if (res && (res.ok || res.pending)) addLog("manual", { site, name: ITEM_OPS[op].label(args), domain: site }, "manuell" + (res.pending ? " (blockiert, läuft nach Schliessen der Verbindung)" : ""), "storage");
+  if (res && (res.ok || res.pending)) addLog("manual", { site, name: ITEM_OPS[op].label(args), domain: site }, res.pending ? I18N.t("bg.manualBlocked") : I18N.t("bg.manual"), "storage");
   return res;
 }
 
@@ -569,7 +570,7 @@ browser.cookies.onChanged.addListener(async (info) => {
       try {
         await CC.removeCookie(info.cookie);
         addLog("block", info.cookie, ev.reason);
-      } catch (e) { console.warn("[Cookie Curator] Block fehlgeschlagen", e); }
+      } catch (e) { console.warn("[Cookie Curator] blocking failed", e); }
     }
   }
   clearTimeout(badgeTimer);
@@ -604,12 +605,12 @@ async function restoreEntries(entries, trigger) {
     restoring.add(id);
     try {
       const res = await browser.cookies.set(CC.restoreDetails(c, config.settings.restoreExtendDays));
-      if (!res) throw new Error("Firefox hat das Cookie abgelehnt");
+      if (!res) throw new Error(I18N.t("bg.cookieRejected"));
       ok.push(e.aid);
-      addLog(trigger, c, "aus Archiv vom " + new Date(e.savedAt).toLocaleString("de-CH") + (e.note ? " (" + e.note + ")" : ""));
+      addLog(trigger, c, I18N.t("bg.fromArchive", { date: new Date(e.savedAt).toLocaleString(I18N.t("fmt.locale")) }) + (e.note ? " (" + e.note + ")" : ""));
     } catch (err) {
       failed.push({ aid: e.aid, name: c.name, error: String(err && err.message || err) });
-      console.warn("[Cookie Curator] Wiederherstellen fehlgeschlagen", c, err);
+      console.warn("[Cookie Curator] restore failed", c, err);
     } finally {
       setTimeout(() => restoring.delete(id), 2000);
     }
@@ -667,7 +668,7 @@ async function updateBadge(tab) {
     browser.browserAction.setBadgeBackgroundColor({ color: pending ? "#c2410c" : "#15803d", tabId: tab.id });
     if (browser.browserAction.setBadgeTextColor) browser.browserAction.setBadgeTextColor({ color: "#ffffff", tabId: tab.id });
     browser.browserAction.setTitle({
-      title: `Cookie Curator – ${site}\n${cookies.length} Cookies, ${pending} werden bei Bereinigung gelöscht`,
+      title: I18N.t("bg.badgeTitle", { site, total: cookies.length, pending }),
       tabId: tab.id
     });
   } catch (e) { /* Tab weg */ }
@@ -688,13 +689,13 @@ browser.runtime.onMessage.addListener(async (msg) => {
     case "cleanSite": return cleanSite(msg.site, "manual", !!msg.dryRun);
     case "cleanAll": return cleanAll("manual", { skipOpen: msg.skipOpen !== false, dryRun: !!msg.dryRun });
     case "deleteCookiesDetailed": {
-      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), msg.reason || "manuell"]));
+      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), msg.reason || I18N.t("bg.manual")]));
       const removed = await deleteList(msg.cookies, "manual", reasons);
       const ids = new Set(removed.map(c => CC.cookieId(c)));
       return { removedIds: [...ids], failed: msg.cookies.filter(c => !ids.has(CC.cookieId(c))).map(c => ({ name: c.name, domain: c.domain })) };
     }
     case "deleteCookies": {
-      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), msg.reason || "manuell"]));
+      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), msg.reason || I18N.t("bg.manual")]));
       const removed = await deleteList(msg.cookies, "manual", reasons);
       return removed.length;
     }
@@ -712,29 +713,29 @@ browser.runtime.onMessage.addListener(async (msg) => {
       let note = "";
       if (msg.type === "cacheStorage") {
         const r = await purgeCacheStorage(msg.site, hostnames);
-        if (r.later.length) note = r.now.length ? " – offene Tabs sofort, übrige Hosts beim nächsten Aufruf" : " – beim nächsten Aufruf";
+        if (r.later.length) note = r.now.length ? I18N.t("bg.nowAndLater") : I18N.t("bg.later");
       } else if (CC.BROWSING_DATA_TYPES.includes(msg.type)) {
         await browser.browsingData.remove({ hostnames }, { [msg.type]: true });
-      } else throw new Error("unbekannte Speicherart " + msg.type);
-      addLog("manual", { site: msg.site, name: CC.STORAGE_LABEL[msg.type] + " (komplett)" + note, domain: hostnames.join(", ") }, "manuell", "storage");
+      } else throw new Error(I18N.t("bg.unknownType", { type: msg.type }));
+      addLog("manual", { site: msg.site, name: I18N.t("bg.complete", { label: CC.STORAGE_LABEL[msg.type] }) + note, domain: hostnames.join(", ") }, I18N.t("bg.manual"), "storage");
       return hostnames;
     }
     case "applyKeyRules": {
       const R = CC.pageKeyRules(config, msg.site);
-      if (!R) return { results: [], note: "kein selektiver Modus aktiv" };
+      if (!R) return { results: [], note: I18N.t("bg.noSelective") };
       R.log = !!config.settings.logEnabled; R.trigger = "manual";
       return { results: await runInSiteTabs(msg.site, CC.pageKeyCleanerCode(R)) };
     }
     case "removeKeys": {
       const res = await runInSiteTabs(msg.site, CC.removeKeysCode(msg.store, msg.keys));
-      for (const k of msg.keys) addLog("manual", { site: msg.site, name: k, domain: msg.site }, "manuell: " + msg.store + "Storage-Eintrag", "storage");
+      for (const k of msg.keys) addLog("manual", { site: msg.site, name: k, domain: msg.site }, I18N.t("bg.manualEntry", { store: msg.store }), "storage");
       return res;
     }
     case "logKeys": {
       const site = CC.siteFromUrl("https://" + msg.host + "/");
       for (const store of ["local", "session"]) {
         for (const k of (msg.removed && msg.removed[store]) || []) {
-          addLog(msg.trigger || "page-load", { site, name: k, domain: msg.host }, store + "Storage-Eintragsregel", "storage");
+          addLog(msg.trigger || "page-load", { site, name: k, domain: msg.host }, I18N.t("bg.entryRule", { store }), "storage");
         }
       }
       return true;
@@ -748,7 +749,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     case "archive": return archiveCookies(msg.cookies, msg.note);
     case "archiveAndDelete": {
       const r = await archiveCookies(msg.cookies, msg.note);
-      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), "manuell: archiviert und gelöscht"]));
+      const reasons = new Map(msg.cookies.map(c => [CC.cookieId(c), I18N.t("bg.archivedDeleted")]));
       r.deleted = (await deleteList(msg.cookies, "manual", reasons)).length;
       return r;
     }

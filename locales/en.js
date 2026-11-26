@@ -80,5 +80,30 @@ I18N.register("en", {
   "change.categories": "Cookie categories",
   "change.storage": "Site data",
   "change.note": "Note",
-  "change.config": "Configuration"
+  "change.config": "Configuration",
+
+  /* Hintergrund: Protokoll, Fehler, Badge (background.js) */
+  "bg.viaBrowsingData": "{reason} (deleted via browsingData)",
+  "bg.purgedAll": "manual: everything of the site deleted",
+  "bg.partlyLater": "{label} (partly on next visit)",
+  "bg.siteData": "Site data: {list}",
+  "bg.complete": "{label} (complete)",
+  "bg.modeDelete": "Site data: mode Delete ({scope})",
+  "bg.scopeSite": "site",
+  "bg.scopeGlobal": "global",
+  "bg.nowAndLater": " – open tabs immediately, other hosts on next visit",
+  "bg.later": " – on next visit",
+  "bg.idbCleared": "IndexedDB {db} / {store} (cleared)",
+  "bg.unknownOp": "unknown action {op}",
+  "bg.noTab": "no tab of the site is open",
+  "bg.manual": "manual",
+  "bg.manualBlocked": "manual (blocked, runs once the connection is closed)",
+  "bg.cookieRejected": "Firefox rejected the cookie",
+  "bg.fromArchive": "from archive of {date}",
+  "bg.badgeTitle": "Cookie Curator – {site}\n{total} cookies, {pending} will be deleted on cleanup",
+  "bg.unknownType": "unknown storage type {type}",
+  "bg.noSelective": "no selective mode active",
+  "bg.manualEntry": "manual: {store}Storage entry",
+  "bg.entryRule": "{store}Storage entry rule",
+  "bg.archivedDeleted": "manual: archived and deleted"
 });
