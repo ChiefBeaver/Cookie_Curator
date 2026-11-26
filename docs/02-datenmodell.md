@@ -14,9 +14,10 @@ Spaltenbreiten (siehe 2.8). `storage.local` ist pro Firefox-Profil, wird nicht s
 | `cc_history` | Rückgängig-/Wiederholen-Stapel mit vollständigen Konfigurationskopien | nur Hintergrund | bis 100 × Konfiguration |
 | `cc_hosts` | Host-Register: Seite → besuchte Hosts | nur Hintergrund (gepuffert) | max. 300 Hosts pro Seite |
 | `cc_cachepurge` | Hosts, deren Cache Storage beim nächsten Aufruf gelöscht wird | nur Hintergrund (gepuffert) | max. 500 Hosts, verfallen nach 90 Tagen |
+| `cc_lang` | Gewählte Sprache der Oberfläche (`"de"`, `"en"`); fehlt = Deutsch | Oberflächen (Sprachknopf) | ein Wort |
 
 Konstanten: `CC.CONFIG_KEY`, `CC.LOG_KEY`, `CC.ARCHIVE_KEY` (in `lib/core.js`), `HISTORY_KEY`,
-`HOSTS_KEY`, `CACHEPURGE_KEY` (in `background.js`).
+`HOSTS_KEY`, `CACHEPURGE_KEY` (in `background.js`), `I18N.STORAGE_KEY` (in `lib/i18n.js`).
 
 ## 2.2 `cc_config`
 
@@ -177,14 +178,21 @@ gebündelt 1,5 s nach dem ersten neuen Eintrag (siehe [08](08-verlauf-archiv-pro
 Ältere Konfigurationen ohne `cacheStorage` erhalten den Wert durch `normalizeConfig` automatisch
 (global `keep`, pro Seite `inherit`).
 
-## 2.8 Spaltenbreiten (`localStorage` der Erweiterungsseiten)
+## 2.8 `cc_lang`
+
+Nur der Sprachcode als Zeichenkette, z. B. `"en"`. Liegt bewusst **nicht** in `cc_config`: Ein
+Sprachwechsel ist keine Konfigurationsänderung, soll nicht im Verlauf für Rückgängig landen und
+nicht im Export (siehe [09, E-19](09-designentscheidungen.md#e-19-eigene-übersetzungen-statt-browseri18n)).
+Unbekannte oder fehlende Werte ergeben die Standardsprache Deutsch (`I18N.DEFAULT`).
+
+## 2.9 Spaltenbreiten (`localStorage` der Erweiterungsseiten)
 
 Schlüssel `cc_colw:<seite>:<spaltennamen>` → Array von Pixelbreiten. Liegt bewusst **nicht** in
 `storage.local`: Es ist eine reine Anzeige-Vorliebe pro Gerät, soll nicht im Export landen und
 nicht den Konfigurations-Verlauf (Rückgängig) auslösen. Popup und Dashboard haben unterschiedliche
 Schlüssel, weil der Seitenpfad Teil des Schlüssels ist.
 
-## 2.9 Import/Export
+## 2.10 Import/Export
 
 Export (Dashboard → Import / Export) schreibt `{ exportedAt, config, archive }` als JSON. **Das
 Archiv kann Login-Cookies enthalten** – die Oberfläche weist darauf hin. Import:

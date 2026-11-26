@@ -36,7 +36,7 @@
 
 ## 10.3 Teststrategie
 
-Getestet wird auf drei Ebenen. Alle Tests und die Testumgebung liegen im Ordner **`tests/`**;
+Getestet wird auf drei Ebenen, dazu kommen eine statische Prüfung und die Prüfung der Dokumentation. Alle Tests und die Testumgebung liegen im Ordner **`tests/`**;
 Einrichtung und Aufruf stehen in `tests/README.md`:
 
 ```powershell
@@ -46,8 +46,10 @@ npm test                              # Einheiten- und Oberflächentests
 python firefox\run_firefox.py         # Firefox-Integrationstests
 ```
 
-Auf GitHub laufen alle Ebenen bei jedem Push automatisch in einem vorbereiteten Docker-Image
-(`.github/workflows/ci.yml`, `.github/ci/Dockerfile`); Einzelheiten in `tests/README.md`,
+Auf GitHub laufen alle Ebenen automatisch bei jedem Pull Request und jedem Push auf `main` in einem
+vorbereiteten Docker-Image (`.github/workflows/ci.yml`, `.github/ci/Dockerfile`); ein Push auf einen
+anderen Zweig allein startet keine Tests (dafür einen Pull Request öffnen oder den Workflow von Hand
+starten); Einzelheiten in `tests/README.md`,
 Abschnitt „Automatische Tests auf GitHub“. Die Firefox-Tests laufen dort mit der aktuellen
 Firefox-ESR-Version aus Debian (beim Einrichten 153 ESR), lokal mit dem installierten Firefox.
 
@@ -62,7 +64,12 @@ bereitstellt. Getestet:
 * `normalizeConfig` mit alten/unvollständigen Konfigurationen, `saveConfig` (leere Seiten),
 * `addToArchive` (gleiche Inhalte überspringen, max. Versionen, Autostart geschützt, Sortierung bei
   gleichem Zeitstempel), `restoreDetails` (Host-only, SameSite=None, Ablauf/Verlängerung),
-* `evalKey`, `pageKeyCleaner` (gegen ein nachgebildetes `Storage`), `describeConfigChange`.
+* `evalKey`, `pageKeyCleaner` (gegen ein nachgebildetes `Storage`), `describeConfigChange`,
+* Übersetzungen (`i18n.test.js`): Platzhalter, Mehrzahl, Ersatz durch Englisch, Standard Deutsch und
+  Reihenfolge des Sprachknopfs; **jede Sprachdatei hat genau die Schlüssel von `en.js`**, jede
+  Hilfedatei dieselben Kapitel, und `EXTRAS.help` passt zu `locales/help/`.
+
+Die Tests laufen auf Deutsch (`loadCore(lang)` kann eine andere Sprache laden).
 
 ### 2. Oberflächentests mit Playwright (Chromium, nachgebildete API)
 
@@ -73,11 +80,19 @@ direkt den echten Hintergrund-Handler aufruft. Damit wurden Klickabläufe geprü
 Rückgängig/Wiederholen, Zwei-Klick-Löschen mit Neuzeichnen dazwischen, Archiv, „Alles löschen“) und
 Bildschirmfotos bei verschiedenen Breiten erstellt.
 
-Grenze: Der Mock bildet Firefox-Eigenheiten (Partitionen, `browsingData`-Verhalten) nicht ab.
+Sprachen (`language.test.js`): Sprachknopf in Dashboard und Popup, Hilfe pro Sprache, und ein
+Durchgang durch **alle Ansichten auf Englisch** (alle Abschnitte und eine Detailansicht aufgeklappt),
+der fehlschlägt, sobald ein Übersetzungsschlüssel oder deutscher Text (Umlaute) sichtbar ist –
+auch in Tooltips, Platzhaltern und Auswahllisten.
+
+Grenze: Der Mock bildet Firefox-Eigenheiten (Partitionen, `browsingData`-Verhalten) nicht ab. Sein
+Zustand liegt in `sessionStorage` und zusätzlich in `window.name`, weil Chromium `sessionStorage`
+asynchron schreibt und ein sofortiges `location.reload()` (Sprachwechsel) sonst manchmal den alten
+Stand sieht.
 
 ### 3. Tests in echtem Firefox (Selenium + geckodriver)
 
-* Firefox 140 ESR, geckodriver 0.36, Selenium, headless.
+* Firefox ESR (zuletzt 153 ESR; Mindestversion des Add-ons 140), geckodriver 0.36, Selenium, headless.
 * Add-on als temporäres Add-on installiert (`install_addon(path, temporary=True)`).
 * Lokale Testseiten: HTTP-Server auf Port 8765, HTTPS-Server auf 8443 mit selbstsigniertem
   Zertifikat; Testdomains über `network.dns.localDomains` (`nzz.test`, `static-nzz.test`,
@@ -94,14 +109,26 @@ Grenze: Der Mock bildet Firefox-Eigenheiten (Partitionen, `browsingData`-Verhalt
   Tab ohne Neuladen, Vormerken und Registrierung bei geschlossenem Tab, Löschen beim nächsten
   Aufruf, Austragen danach (neuer Cache bleibt), Modus „Löschen“ beim Tab-Schliessen mit
   Protokoll, „Alles löschen“, Anzeige in der Oberfläche.
+* Sprachen (`test_i18n.py`, Firefox auf Englisch eingestellt): Standard Deutsch trotzdem, Wechsel per
+  Knopf, ein zweites offenes Fenster wechselt mit, der Hintergrund folgt ohne Neustart (Tooltip des
+  Symbols, Begründungen), die Wahl übersteht Neuladen und landet nicht im Verlauf, Hilfe pro Sprache,
+  jede Sprachdatei wird nur einmal geladen.
 * Die Firefox-Tests arbeiten mit festen Wartezeiten (0,5–3 s). Auf einem langsamen Rechner kann
   ein Test deshalb vereinzelt fehlschlagen, ohne dass das Add-on fehlerhaft ist; dann den einzelnen
   Test mit Filter erneut laufen lassen (`python firefox\run_firefox.py cache`).
 
 ### 4. Statische Prüfung
 
-`npx addons-linter cookie-curator.xpi` – 0 Fehler. Einzige Warnung: `strict_min_version` für
-Firefox für Android nicht gesetzt (Add-on ist für Desktop gedacht).
+`npx addons-linter cookie-curator.xpi` – 0 Fehler. Einzige Warnung: `data_collection_permissions`
+wird erst ab Firefox für Android 142 unterstützt (Add-on ist für Desktop gedacht).
+
+### 5. Dokumentation
+
+CI-Job `docs` (bei jedem Pull Request): `tools/build_docs.sh` erzeugt die Wiki-Seiten und das PDF
+genau wie beim Hochladen und prüft mit `tools/check_wiki.py`, dass jeder Link auf eine vorhandene
+Seite und jeder Anker auf eine vorhandene Überschrift zeigt und das PDF ein PDF ist. Das PDF hängt
+als Artefakt am Lauf. Nach dem Hochladen ins Wiki prüft `wiki.yml` zusätzlich, dass der PDF-Link im
+Wiki eine PDF-Datei liefert (siehe 10.5).
 
 ## 10.4 Erweiterung
 
@@ -131,8 +158,26 @@ Firefox für Android nicht gesetzt (Add-on ist für Desktop gedacht).
 ### Neue Einstellung
 
 1. Standardwert in `defaultConfig().settings`.
-2. Beschriftung in `SETTING_LABEL` (für die Verlaufsbeschreibung).
-3. Eingabefeld in `renderSettings()` (`options.js`) in der passenden Gruppe.
+2. Beschriftung `setting.<name>` in allen `locales/*.js` und den Namen in `SETTING_LABEL` (für die
+   Verlaufsbeschreibung).
+3. Eingabefeld in `renderSettings()` (`options.js`) in der passenden Gruppe, Texte über `T("set.…")`.
+
+### Neuer Text in der Oberfläche
+
+Nie Text direkt in den Code schreiben: Schlüssel in **allen** `locales/*.js` ergänzen (der
+Einheitentest meldet fehlende), im Code `T("bereich.name", { platzhalter })`. Mehrzahl über
+`name_one`/`name_other` und `{ n }`. Der englische Oberflächentest findet vergessene Stellen.
+
+### Neue Sprache (Beispiel Französisch, `fr`)
+
+1. `locales/en.js` nach `locales/fr.js` kopieren, `I18N.register("en", …)` auf `"fr"` ändern, Texte
+   übersetzen; Platzhalter wie `{n}` unverändert lassen.
+2. In `lib/i18n.js` bei `LANGUAGES` die Zeile `fr: "Français"` ergänzen (Reihenfolge = Sprachknopf).
+3. Optional Hilfe: `locales/help/en.js` → `locales/help/fr.js`, übersetzen, `"fr"` bei
+   `EXTRAS.help` ergänzen; sonst erscheint die englische Hilfe.
+4. Optional `_locales/fr/messages.json` für die Beschreibung im Add-on-Manager.
+5. `node tests/unit/run-unit.js i18n` prüft Schlüssel und Kapitel. Mit einer vorübergehenden
+   dritten Sprache erprobt: Die übrigen Tests brauchen keine Anpassung.
 
 ### Umstellung auf Manifest V3 (falls je nötig)
 
@@ -153,13 +198,16 @@ Startseite, dazu kommen eine Seitenleiste und ein Hinweis auf die Quelle. Bearbe
 hier in `docs/`; direkte Änderungen im Wiki überschreibt der nächste Abgleich.
 
 Der Workflow erzeugt dabei auch das PDF der ganzen Dokumentation (`tools/build_pdf.py`) und legt
-es ins Wiki; Startseite und Seitenleiste verlinken es. Im Repository liegt kein PDF. Lokal erzeugen:
-`python tools/build_pdf.py [AUSGABE.pdf]`.
+es ins Wiki; Startseite und Seitenleiste verlinken es. Im Repository liegt kein PDF. Beides erledigt
+`tools/build_docs.sh ORDNER`, das danach alle Links prüft (`tools/check_wiki.py`); nach dem Hochladen
+prüft der Workflow, dass der PDF-Link im Wiki eine PDF-Datei liefert. Lokal:
+`python tools/build_pdf.py [AUSGABE.pdf]` (braucht `markdown`, `playwright` mit Chromium und Node für
+`npx @mermaid-js/mermaid-cli`; als root startet das Skript Chrome für die Diagramme ohne Sandbox).
 
 ## 10.6 Paketieren, Signieren, Installieren
 
 * **Paket:** `python tools/build_xpi.py` erzeugt `cookie-curator.xpi`. Inhalt: `manifest.json`,
-  `background.js`, `lib/`, `ui/`, `popup/`, `options/`, `icons/`, `page/`, `LICENSE` – **ohne** `docs/`,
+  `_locales/`, `background.js`, `lib/`, `locales/`, `ui/`, `popup/`, `options/`, `icons/`, `page/`, `LICENSE` – **ohne** `docs/`,
   `tests/`, `tools/` und `README.md`. Von Hand dasselbe:
   ```
   zip -r cookie-curator.xpi manifest.json background.js lib ui popup options icons page LICENSE

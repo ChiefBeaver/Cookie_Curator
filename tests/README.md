@@ -4,9 +4,9 @@ Drei Ebenen, von schnell bis realistisch:
 
 | Ebene | Ordner | Läuft in | Dauer | Prüft |
 |---|---|---|---|---|
-| Einheitentests | `unit/` | Node.js | < 1 s | Regel-Engine, Domains, Kategorien, Archiv, Eintragsregeln, Hintergrundlogik mit nachgebildeter API (Tab-Schliessen, Blockieren, Rückgängig, Cache Storage) |
-| Oberflächentests | `ui/` | Chromium (Playwright) mit nachgebildeter `browser`-API | ~ 30 s | Dashboard und Popup: Archiv-Ablauf, Rückgängig/Wiederholen, Website-Daten, Übersicht |
-| Firefox-Tests | `firefox/` | echtes Firefox (Selenium) mit installiertem Add-on | ~ 5 min | Alles, was nur Firefox kann: echte Cookies, Partitionierung, browsingData, Skript-Welten, Cache Storage, Grenzwerte |
+| Einheitentests | `unit/` | Node.js | < 1 s | Regel-Engine, Domains, Kategorien, Archiv, Eintragsregeln, Hintergrundlogik mit nachgebildeter API (Tab-Schliessen, Blockieren, Rückgängig, Cache Storage), Übersetzungen (gleiche Schlüssel in jeder Sprache) |
+| Oberflächentests | `ui/` | Chromium (Playwright) mit nachgebildeter `browser`-API | ~ 1 min | Dashboard und Popup: Archiv-Ablauf, Rückgängig/Wiederholen, Website-Daten, Übersicht, Sprachknopf, alle Ansichten auf Englisch ohne fehlende Übersetzung |
+| Firefox-Tests | `firefox/` | echtes Firefox (Selenium) mit installiertem Add-on | ~ 5 min | Alles, was nur Firefox kann: echte Cookies, Partitionierung, browsingData, Skript-Welten, Cache Storage, Grenzwerte, Sprachwechsel über alle Fenster und den Hintergrund |
 
 Warum drei Ebenen: siehe `docs/10-grenzen-tests-erweiterung.md`, Abschnitt 10.3.
 
@@ -80,7 +80,9 @@ die Server lauschen nur auf 127.0.0.1, Zugriff aus dem Netzwerk ist nicht nötig
 ## Automatische Tests auf GitHub (CI)
 
 Bei jedem Push auf `main`, bei Pull Requests und bei Versions-Tags läuft
-`.github/workflows/ci.yml` auf GitHub Actions (für öffentliche Repositories kostenlos):
+`.github/workflows/ci.yml` auf GitHub Actions (für öffentliche Repositories kostenlos). Ein Push auf
+einen anderen Zweig allein startet keine Tests – dafür einen Pull Request öffnen oder den Workflow
+unter *Actions → CI → Run workflow* für den Zweig starten:
 
 ```
 Push / Pull Request / Tag v*
@@ -92,6 +94,8 @@ image ── CI-Image aus .github/ci/Dockerfile bereitstellen
    ├──► ui        Oberflächentests
    ├──► lint      XPI bauen, Mozilla addons-linter
    └──► firefox   Firefox-Tests
+docs ──── Wiki-Seiten und PDF der Dokumentation erzeugen, alle Links prüfen (eigener Runner,
+   │      ohne Image; das PDF hängt als Artefakt am Lauf)
           │
           ▼ (nur bei Tag v0.8.0 usw.)
         release   XPI bauen und an ein GitHub-Release hängen
@@ -128,15 +132,15 @@ tests/
 ├── unit/
 │   ├── helpers.js         lädt core.js / background.js in eine VM mit nachgebildeter API
 │   ├── run-unit.js        Testläufer
-│   └── *.test.js          core, archive, storage, background
+│   └── *.test.js          core, archive, storage, background, i18n
 ├── ui/
 │   ├── mock-browser.js    nachgebildete browser-API (lädt die echte background.js in die Seite)
 │   ├── run-ui.js          Testläufer (Chromium)
-│   └── *.test.js          archive-flow, undo-redo, website-data
+│   └── *.test.js          archive-flow, undo-redo, website-data, language
 ├── firefox/
 │   ├── common.py          Server, Zertifikat, Firefox-Start, Hilfsfunktionen
 │   ├── run_firefox.py     Testläufer
-│   ├── test_*.py          cookies, website_data, cache_storage, partition, ui, limits
+│   ├── test_*.py          cookies, website_data, cache_storage, partition, ui, limits, i18n
 │   └── site/              Testseiten
 └── output/                Bildschirmfotos (wird erzeugt, nicht im Git)
 ```
@@ -152,3 +156,22 @@ tests/
   eintragen. `h` (Klasse `Harness`) bietet u. a. `new_tab`, `ext(route)`, `bg(nachricht)`,
   `js(code)`, `site_config(seite, js)`, `check(bedingung, text)`, `screenshot(name)`.
   Dritter Eintrag in `TESTS` sind Startoptionen, z. B. `{"prefs": {…}, "width": 1700}`.
+* **Sprache:** Alle Tests laufen mit der Standardsprache Deutsch; Knöpfe werden darum über ihren
+  deutschen Text gefunden. Für englische Abläufe vorher die Sprache wählen – im Oberflächentest
+  `await p.evaluate(() => I18N.choose("en"))`, im Firefox-Test `h.js("await I18N.choose('en'); return 1")`.
+  Neue Oberflächentexte gehören in alle `locales/*.js`; `unit/i18n.test.js` meldet fehlende
+  Schlüssel, `ui/language.test.js` sichtbare Schlüssel oder deutsche Texte auf Englisch.
+
+## Dokumentation prüfen
+
+Die technische Dokumentation (`docs/`) wird als Wiki mit PDF veröffentlicht. Dieselbe Erzeugung
+läuft in CI (Job `docs`) und lokal:
+
+```bash
+pip install markdown playwright && python -m playwright install chromium
+tools/build_docs.sh /tmp/wiki      # Wiki-Seiten + PDF erzeugen, danach alle Links prüfen
+```
+
+`tools/check_wiki.py` meldet Links auf fehlende Seiten, Anker ohne passende Überschrift und einen
+fehlenden oder kaputten PDF-Link. Für die Diagramme lädt `npx` beim ersten Lauf `@mermaid-js/mermaid-cli`.
+
