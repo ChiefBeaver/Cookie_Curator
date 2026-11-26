@@ -556,5 +556,10 @@
   const setHdr = () => document.documentElement.style.setProperty("--hdr", header.offsetHeight + "px");
   setHdr();
   if (window.ResizeObserver) new ResizeObserver(setHdr).observe(header); else window.addEventListener("resize", setHdr);
-  I18N.init().then(() => { I18N.apply(); return load(); }).then(render);
+  I18N.init().then(() => {
+    I18N.apply();
+    I18N.onChange(() => location.reload());
+    document.getElementById("lang-slot").append(UI.languageButton());
+    return load();
+  }).then(render);
 })();

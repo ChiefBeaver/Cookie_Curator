@@ -156,6 +156,7 @@ td.nowrap { white-space: nowrap; }
 /* Rückgängig / Wiederholen */
 .history-buttons { display: inline-flex; gap: 4px; }
 .btn.hist:disabled { opacity: .4; }
+.btn.lang-btn { font-weight: 600; min-width: 2.6em; letter-spacing: .03em; }
 
 /* Lokaler Speicher */
 .storage-fields { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin-top: 6px; }

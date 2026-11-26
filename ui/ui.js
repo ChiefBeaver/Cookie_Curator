@@ -235,6 +235,18 @@
   /* Rückgängig / Wiederholen                                            */
   /* ------------------------------------------------------------------ */
 
+  /* Sprachknopf: wechselt reihum zur nächsten Sprache aus I18N.LANGUAGES.
+   * Die Seiten laden sich danach neu (I18N.onChange in popup.js / options.js). */
+  function languageButton() {
+    const cur = I18N.getLang(), nxt = I18N.next();
+    const name = code => I18N.LANGUAGES[code] || code;
+    return el("button", {
+      class: "btn lang-btn", type: "button", lang: cur,
+      title: I18N.t("lang.switch", { current: name(cur), next: name(nxt) }),
+      onclick: () => I18N.choose(nxt)
+    }, cur.toUpperCase());
+  }
+
   function historyButtons(opts) {
     const compact = opts && opts.compact;
     const undoBtn = el("button", { class: "btn hist", type: "button", disabled: true }, compact ? "↶" : "↶ Rückgängig");
@@ -1129,5 +1141,5 @@
     }
   }
 
-  root.UI = { purgeButton, historyButtons, el, select, confirmButton, toast, copyText, actionPill, catBadge, ruleTable, archiveTable, archiveBulkBar, restoreAids, SiteEditor };
+  root.UI = { purgeButton, historyButtons, languageButton, el, select, confirmButton, toast, copyText, actionPill, catBadge, ruleTable, archiveTable, archiveBulkBar, restoreAids, SiteEditor };
 })(typeof self !== "undefined" ? self : this);
