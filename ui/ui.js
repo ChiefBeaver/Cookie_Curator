@@ -853,11 +853,11 @@
       const st = this.st();
       st.keyRules = st.keyRules.filter(r => !(r.quick && r.store === store && r.name === key));
       if (value === "keep" || value === "delete") {
-        st.keyRules.unshift(CC.newKeyRule({ store, match: "exact", name: key, action: value, quick: true, note: "Schnellregel" }));
+        st.keyRules.unshift(CC.newKeyRule({ store, match: "exact", name: key, action: value, quick: true, note: T("rules.quick") }));
         const type = store === "local" ? "localStorage" : "sessionStorage";
         if (CC.effectiveStorageMode(this.cfg, this.site, type) !== "selective") {
           st[type] = "selective";
-          toast(type + " auf Selektiv umgestellt, damit die Eintragsregel greift");
+          toast(T("data.switchedSelective", { type }));
         }
       }
       this.save(true);
@@ -867,15 +867,15 @@
       try {
         const r = await browser.runtime.sendMessage({ cmd: "storageItem", site: this.site, op, args });
         if (r && r.ok) toast(okMsg);
-        else if (r && r.pending) toast("Blockiert: die Seite hält die Datenbank offen. Wird gelöscht, sobald der Tab sie schliesst (z. B. Tab neu laden).", "err");
-        else toast("Fehlgeschlagen: " + ((r && r.error) || "unbekannt"), "err");
-      } catch (e) { toast("Fehlgeschlagen: " + e.message, "err"); }
+        else if (r && r.pending) toast(T("data.blocked"), "err");
+        else toast(T("data.failed", { msg: (r && r.error) || T("data.unknown") }), "err");
+      } catch (e) { toast(T("data.failed", { msg: e.message }), "err"); }
       this.loadLive();
     }
 
     /* ganze Speicherart für alle bekannten Hosts der Seite löschen (browsingData) */
     deleteTypeButton(type) {
-      return confirmButton("Alle löschen", "Sicher?", async () => {
+      return confirmButton(T("data.deleteAll"), T("data.sure"), async () => {
         const hosts = await browser.runtime.sendMessage({ cmd: "deleteStorageNow", site: this.site, type });
         toast(deletedText(type, hosts)); this.loadLive();
       }, "danger small");
@@ -885,7 +885,7 @@
     liveSection(type, title, info, actions, table) {
       const mode = type ? CC.MODE_LABEL[CC.effectiveStorageMode(this.cfg, this.site, type)] : null;
       return el("div", { class: "keyblock" },
-        el("div", { class: "keyhead" }, el("b", {}, title), el("span", { class: "dim" }, " " + info + (mode ? " · Modus " + mode : "")),
+        el("div", { class: "keyhead" }, el("b", {}, title), el("span", { class: "dim" }, " " + info + (mode ? T("data.mode", { mode }) : "")),
           el("span", { class: "spacer" }), ...(actions || []).filter(Boolean)),
         table);
     }
@@ -897,39 +897,39 @@
         const ev = CC.evalKey(this.cfg, this.site, store, it.k);
         const quick = st.keyRules.find(r => r.quick && r.store === store && r.name === it.k);
         const qv = quick ? quick.action : ev.ruleId ? "rule" : "auto";
-        const opts = [["auto", "Auto"], ["keep", "Behalten"], ["delete", "Löschen"]];
-        if (qv === "rule") opts.splice(1, 0, ["rule", "Regel", true]);
+        const opts = [["auto", T("ck.auto")], ["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete]];
+        if (qv === "rule") opts.splice(1, 0, ["rule", T("ck.rule"), true]);
         return el("tr", { class: "r-" + ev.action },
-          el("td", {}, select(opts, qv, v => this.setQuickKey(store, it.k, v), { class: "quick act-" + (quick ? quick.action : "auto"), title: "Schnellregel (exakter Eintrag) für diese Seite" })),
+          el("td", {}, select(opts, qv, v => this.setQuickKey(store, it.k, v), { class: "quick act-" + (quick ? quick.action : "auto"), title: T("data.entryQuickTitle") })),
           el("td", { class: "name" }, el("code", {}, it.k)),
           el("td", { class: "mono dim val", title: it.v }, it.v.length > 80 ? it.v.slice(0, 80) + "…" : it.v),
           el("td", { class: "num" }, CC.fmtBytes(it.size)),
           el("td", {}, actionPill(ev.action, ev.reason)),
           this.compact ? null : el("td", { class: "reason dim" }, ev.reason),
           el("td", { class: "nowrap" },
-            el("button", { class: "btn small", title: "Wert kopieren", onclick: () => copyText(it.v) }, "Kopieren"),
-            el("button", { class: "icon danger", title: "Eintrag jetzt löschen (in allen offenen Tabs der Seite)", onclick: async () => {
+            el("button", { class: "btn small", title: T("data.copyValue"), onclick: () => copyText(it.v) }, T("data.copy")),
+            el("button", { class: "icon danger", title: T("data.deleteEntryTitle"), onclick: async () => {
               await browser.runtime.sendMessage({ cmd: "removeKeys", site: this.site, store, keys: [it.k] });
-              toast("Gelöscht: " + it.k); this.loadLive();
+              toast(T("data.deletedItem", { name: it.k })); this.loadLive();
             } }, "✕")));
       });
       const total = (items || []).reduce((a, b) => a + b.size, 0);
       const cols = this.compact ? 6 : 7;
       const clearAll = store === "local" ? this.deleteTypeButton("localStorage")
-        : (items || []).length ? confirmButton("Alle löschen", "Sicher?", async () => {
+        : (items || []).length ? confirmButton(T("data.deleteAll"), T("data.sure"), async () => {
           await browser.runtime.sendMessage({ cmd: "removeKeys", site: this.site, store, keys: items.map(x => x.k) });
-          toast("sessionStorage geleert"); this.loadLive();
+          toast(T("data.sessionCleared")); this.loadLive();
         }, "danger small") : null;
-      return this.liveSection(type, type, `${(items || []).length} Einträge · ${CC.fmtBytes(total)}`, [clearAll],
+      return this.liveSection(type, type, T("data.entries", { n: (items || []).length, size: CC.fmtBytes(total) }), [clearAll],
         el("div", { class: "table-scroll keys-scroll" }, el("table", { class: "grid" },
           el("thead", {}, el("tr", {},
-            el("th", { title: "Schnellregel für diesen Eintrag" }, "Regel"), el("th", {}, "Name"), el("th", {}, "Wert"), el("th", {}, "Grösse"),
-            el("th", { title: "Was die Eintragsregeln beim nächsten Laden tun" }, "Ergebnis"), this.compact ? null : el("th", {}, "Begründung"), el("th", {}, ""))),
-          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: cols, class: "empty" }, "Keine Einträge."))))));
+            el("th", { title: T("data.entryRuleHead") }, T("ck.rule")), el("th", {}, T("rules.name")), el("th", {}, T("dt.value")), el("th", {}, T("ck.size")),
+            el("th", { title: T("data.resultTitle") }, T("ck.result")), this.compact ? null : el("th", {}, T("ck.reason")), el("th", {}, ""))),
+          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: cols, class: "empty" }, T("data.noEntries")))))));
     }
 
     idbTable(data) {
-      if (data.idb == null) return this.liveSection("indexedDB", "IndexedDB", "nicht lesbar" + (data.errors && data.errors.idb ? ": " + data.errors.idb : ""), [this.deleteTypeButton("indexedDB")], null);
+      if (data.idb == null) return this.liveSection("indexedDB", "IndexedDB", T("data.unreadable") + (data.errors && data.errors.idb ? ": " + data.errors.idb : ""), [this.deleteTypeButton("indexedDB")], null);
       const total = data.idb.reduce((a, d) => a + (d.records || 0), 0);
       const rows = [];
       for (const d of data.idb) {
@@ -938,26 +938,26 @@
           el("td", { class: "num" }, "v" + d.version),
           el("td", { class: "num" }, String(d.stores.length)),
           el("td", { class: "num" }, String(d.records)),
-          el("td", { class: "dim" }, d.error ? "Fehler: " + d.error : ""),
-          el("td", { class: "nowrap" }, confirmButton("Löschen", "Sicher?", () => this.itemAction("deleteIdb", [d.name], "Datenbank gelöscht: " + d.name), "danger small"))));
+          el("td", { class: "dim" }, d.error ? T("data.errorPrefix", { msg: d.error }) : ""),
+          el("td", { class: "nowrap" }, confirmButton(T("data.delete"), T("data.sure"), () => this.itemAction("deleteIdb", [d.name], T("data.dbDeleted", { name: d.name })), "danger small"))));
         for (const st of d.stores) {
           rows.push(el("tr", { class: "sub" },
             el("td", { class: "mono dim" }, "└ ", st.name),
             el("td", {}, ""),
-            el("td", { class: "dim", title: "keyPath / Indizes" }, (st.keyPath ? "key " + st.keyPath : st.autoIncrement ? "autoInc" : "") + (st.indexes.length ? " · " + st.indexes.join(", ") : "")),
+            el("td", { class: "dim", title: T("data.indexes") }, (st.keyPath ? "key " + st.keyPath : st.autoIncrement ? "autoInc" : "") + (st.indexes.length ? " · " + st.indexes.join(", ") : "")),
             el("td", { class: "num" }, st.count == null ? "?" : String(st.count)),
             el("td", {}, ""),
-            el("td", { class: "nowrap" }, confirmButton("Leeren", "Sicher?", () => this.itemAction("clearIdbStore", [d.name, st.name], `Store geleert: ${d.name}/${st.name}`), "small"))));
+            el("td", { class: "nowrap" }, confirmButton(T("data.clear"), T("data.sure"), () => this.itemAction("clearIdbStore", [d.name, st.name], T("data.storeCleared", { name: d.name + "/" + st.name })), "small"))));
         }
       }
-      return this.liveSection("indexedDB", "IndexedDB", `${data.idb.length} Datenbanken · ${total} Einträge`, [this.deleteTypeButton("indexedDB")],
+      return this.liveSection("indexedDB", "IndexedDB", T("data.dbSummary", { dbs: data.idb.length, n: total }), [this.deleteTypeButton("indexedDB")],
         el("div", { class: "table-scroll keys-scroll" }, el("table", { class: "grid" },
-          el("thead", {}, el("tr", {}, el("th", {}, "Name (Datenbank / Object Store)"), el("th", {}, "Version"), el("th", {}, "Stores / keyPath"), el("th", {}, "Einträge"), el("th", {}, ""), el("th", {}, ""))),
-          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 6, class: "empty" }, "Keine Datenbanken."))))));
+          el("thead", {}, el("tr", {}, el("th", {}, T("data.dbName")), el("th", {}, T("data.version")), el("th", {}, T("data.stores")), el("th", {}, T("data.entriesHead")), el("th", {}, ""), el("th", {}, ""))),
+          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 6, class: "empty" }, T("data.noDbs")))))));
     }
 
     cacheTable(data) {
-      if (data.caches == null) return this.liveSection("cacheStorage", "Cache Storage", "nicht lesbar" + (data.errors && data.errors.caches ? ": " + data.errors.caches : ""), [this.deleteTypeButton("cacheStorage")], null);
+      if (data.caches == null) return this.liveSection("cacheStorage", "Cache Storage", T("data.unreadable") + (data.errors && data.errors.caches ? ": " + data.errors.caches : ""), [this.deleteTypeButton("cacheStorage")], null);
       this.openCaches = this.openCaches || new Set();
       const rows = [];
       for (const c of data.caches) {
@@ -967,35 +967,35 @@
             el("span", { class: "caret" }, c.count ? (isOpen ? "▾" : "▸") : ""), el("code", {}, c.name)),
           el("td", { class: "num" }, String(c.count) + (c.truncated ? "+" : "")),
           el("td", { class: "num" }, CC.fmtBytes(c.size)),
-          el("td", { class: "dim" }, c.error ? "Fehler: " + c.error : ""),
-          el("td", { class: "nowrap" }, confirmButton("Löschen", "Sicher?", () => this.itemAction("deleteCache", [c.name], "Cache gelöscht: " + c.name), "danger small"))));
+          el("td", { class: "dim" }, c.error ? T("data.errorPrefix", { msg: c.error }) : ""),
+          el("td", { class: "nowrap" }, confirmButton(T("data.delete"), T("data.sure"), () => this.itemAction("deleteCache", [c.name], T("data.cacheDeleted", { name: c.name })), "danger small"))));
         if (isOpen) for (const e of c.entries) {
           rows.push(el("tr", { class: "sub" },
             el("td", { class: "mono dim val", title: e.url }, "└ ", e.method !== "GET" ? e.method + " " : "", e.url),
             el("td", { class: "dim" }, e.type.split(";")[0]),
             el("td", { class: "num" }, CC.fmtBytes(e.size)),
             el("td", {}, ""),
-            el("td", {}, el("button", { class: "icon danger", title: "Eintrag löschen", onclick: () => this.itemAction("deleteCacheEntry", [c.name, e.url], "Eintrag gelöscht") }, "✕"))));
+            el("td", {}, el("button", { class: "icon danger", title: T("data.deleteEntry"), onclick: () => this.itemAction("deleteCacheEntry", [c.name, e.url], T("data.entryDeleted")) }, "✕"))));
         }
       }
       const total = data.caches.reduce((a, c) => a + c.size, 0);
-      return this.liveSection("cacheStorage", "Cache Storage", `${data.caches.length} Caches · ${CC.fmtBytes(total)}`, [this.deleteTypeButton("cacheStorage")],
+      return this.liveSection("cacheStorage", "Cache Storage", T("data.cacheSummary", { n: data.caches.length, size: CC.fmtBytes(total) }), [this.deleteTypeButton("cacheStorage")],
         el("div", { class: "table-scroll keys-scroll" }, el("table", { class: "grid" },
-          el("thead", {}, el("tr", {}, el("th", {}, "Name (Cache / URL)"), el("th", {}, "Einträge / Typ"), el("th", {}, "Grösse"), el("th", {}, ""), el("th", {}, ""))),
-          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 5, class: "empty" }, "Keine Caches."))))));
+          el("thead", {}, el("tr", {}, el("th", {}, T("data.cacheName")), el("th", {}, T("data.entriesType")), el("th", {}, T("ck.size")), el("th", {}, ""), el("th", {}, ""))),
+          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 5, class: "empty" }, T("data.noCaches")))))));
     }
 
     swTable(data) {
-      if (data.sw == null) return this.liveSection("serviceWorkers", "Service Worker", "nicht lesbar" + (data.errors && data.errors.sw ? ": " + data.errors.sw : ""), [this.deleteTypeButton("serviceWorkers")], null);
+      if (data.sw == null) return this.liveSection("serviceWorkers", "Service Worker", T("data.unreadable") + (data.errors && data.errors.sw ? ": " + data.errors.sw : ""), [this.deleteTypeButton("serviceWorkers")], null);
       const rows = data.sw.map(w => el("tr", {},
         el("td", { class: "mono" }, w.scope),
         el("td", { class: "mono dim val", title: w.script }, w.script),
-        el("td", {}, el("span", { class: "pill " + (w.state === "activated" ? "a-keep" : "a-delete") }, w.state), w.controlsPage ? el("span", { class: "badge", style: "margin-left:4px", title: "Steuert die aktuelle Seite" }, "steuert Seite") : null),
-        el("td", { class: "nowrap" }, confirmButton("Abmelden", "Sicher?", () => this.itemAction("unregisterSw", [w.scope], "Service Worker abgemeldet"), "danger small"))));
-      return this.liveSection("serviceWorkers", "Service Worker", `${data.sw.length} Registrierungen`, [this.deleteTypeButton("serviceWorkers")],
+        el("td", {}, el("span", { class: "pill " + (w.state === "activated" ? "a-keep" : "a-delete") }, w.state), w.controlsPage ? el("span", { class: "badge", style: "margin-left:4px", title: T("data.controlsTitle") }, T("data.controls")) : null),
+        el("td", { class: "nowrap" }, confirmButton(T("data.unregister"), T("data.sure"), () => this.itemAction("unregisterSw", [w.scope], T("data.swUnregistered")), "danger small"))));
+      return this.liveSection("serviceWorkers", "Service Worker", T("data.swSummary", { n: data.sw.length }), [this.deleteTypeButton("serviceWorkers")],
         el("div", { class: "table-scroll keys-scroll" }, el("table", { class: "grid" },
-          el("thead", {}, el("tr", {}, el("th", {}, "Name (Scope)"), el("th", {}, "Skript"), el("th", {}, "Status"), el("th", {}, ""))),
-          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 4, class: "empty" }, "Keine Service Worker."))))));
+          el("thead", {}, el("tr", {}, el("th", {}, T("data.scope")), el("th", {}, T("data.script")), el("th", {}, T("data.status")), el("th", {}, ""))),
+          el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 4, class: "empty" }, T("data.noSw")))))));
     }
 
     /* ---------- Website-Daten: Richtlinie · Inhalt · Eintragsregeln ---------- */
@@ -1011,67 +1011,64 @@
 
       // 1. Richtlinie
       const modeSel = type => {
-        const opts = [["inherit", `Erben (${CC.MODE_LABEL[g[type] || "keep"].replace(/ \(.*\)/, "")})`]].concat(CC.STORAGE_MODES[type].map(m => [m, CC.MODE_LABEL[m]]));
+        const opts = [["inherit", T("site.inherit", { value: CC.MODE_LABEL[g[type] || "keep"].replace(/ \(.*\)/, "") })]].concat(CC.STORAGE_MODES[type].map(m => [m, CC.MODE_LABEL[m]]));
         return field(CC.STORAGE_LABEL[type],
           select(opts, st[type] || "inherit", v => { this.st()[type] = v; this.save(true); }, { class: "mode-" + CC.effectiveStorageMode(this.cfg, this.site, type) }),
           CC.STORAGE_HELP[type]);
       };
-      this.sub(this.dataPolicyEl, "dataPolicy", true, "Richtlinie", null,
+      this.sub(this.dataPolicyEl, "dataPolicy", true, T("policy.title"), null,
         el("div", { class: "fields" },
           ...CC.STORAGE_TYPES.map(modeSel),
-          field("Standard für übrige Einträge",
-            select([["keep", "Behalten"], ["delete", "Löschen"]], st.keyDefault || "keep", v => { this.st().keyDefault = v; this.save(true); }, { disabled: !anySelective }),
-            "Nur im Modus Selektiv: was mit Einträgen passiert, auf die keine Eintragsregel passt.")),
-        el("p", { class: "hint" },
-          "Löschen = ganze Speicherart pro Host bei jeder Bereinigung (Tab-Schliessen, Start, Intervall, manuell). ",
-          "Selektiv = einzelne Einträge nach Eintragsregeln, beim Laden der Seite bevor deren Skripte laufen. ",
-          "Reihenfolge: Eintragsregeln → Standard für übrige Einträge."));
+          field(T("data.keyDefault"),
+            select([["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete]], st.keyDefault || "keep", v => { this.st().keyDefault = v; this.save(true); }, { disabled: !anySelective }),
+            T("data.keyDefaultHelp"))),
+        el("p", { class: "hint" }, T("data.policyHint")));
 
       // 2. Inhalt
       let content;
-      if (this.liveLoading) content = [el("p", { class: "dim" }, "Lese Website-Daten der offenen Seite …")];
+      if (this.liveLoading) content = [el("p", { class: "dim" }, T("data.loading"))];
       else if (!this.live || !open) content = [
-        el("p", { class: "hint" }, "Kein Tab dieser Seite offen. Öffne die Seite, um Einträge, Datenbanken, Caches und Service Worker zu sehen. Löschen geht trotzdem:"),
+        el("p", { class: "hint" }, T("data.noTab")),
         el("div", { class: "row-actions" }, ...CC.WHOLE_TYPES.map(t =>
-          confirmButton(CC.STORAGE_LABEL[t] + " löschen", "Sicher?", async () => {
+          confirmButton(T("data.deleteType", { label: CC.STORAGE_LABEL[t] }), T("data.sure"), async () => {
             const hosts = await browser.runtime.sendMessage({ cmd: "deleteStorageNow", site: this.site, type: t });
             toast(deletedText(t, hosts));
           }, "danger small")))];
-      else if (this.live.error) content = [el("p", { class: "hint" }, "Website-Daten konnten nicht gelesen werden: " + this.live.error + " (z. B. auf geschützten Seiten wie addons.mozilla.org).")];
+      else if (this.live.error) content = [el("p", { class: "hint" }, T("data.readError", { msg: this.live.error }))];
       else content = [
         this.entryTable("local", data.local),
         this.entryTable("session", data.session),
         this.idbTable(data),
         this.cacheTable(data),
         this.swTable(data),
-        this.liveSection("cache", "HTTP-Cache", "Inhalt für Erweiterungen nicht einsehbar", [this.deleteTypeButton("cache")], null)];
+        this.liveSection("cache", CC.STORAGE_LABEL.cache, T("data.httpCacheHidden"), [this.deleteTypeButton("cache")], null)];
       const info = data && open && !this.live.error
-        ? el("span", { class: "dim mono" }, data.origin + (data.estimate ? ` · ${CC.fmtBytes(data.estimate.usage)} von ${CC.fmtBytes(data.estimate.quota)} belegt` : "") + (data.persisted ? " · persistent" : ""))
+        ? el("span", { class: "dim mono" }, data.origin + (data.estimate ? T("data.usage", { usage: CC.fmtBytes(data.estimate.usage), quota: CC.fmtBytes(data.estimate.quota) }) : "") + (data.persisted ? T("data.persistent") : ""))
         : null;
-      this.sub(this.storageEl, "dataContent", true, "Inhalt", null,
+      this.sub(this.storageEl, "dataContent", true, T("ck.content"), null,
         el("div", { class: "toolbar" },
           info,
           el("span", { class: "spacer" }),
-          el("button", { class: "btn", title: "Neu lesen", onclick: () => this.loadLive() }, "↻"),
-          anySelective && open ? el("button", { class: "btn", title: "Eintragsregeln jetzt in allen offenen Tabs der Seite anwenden", onclick: async () => {
+          el("button", { class: "btn", title: T("ck.reload"), onclick: () => this.loadLive() }, "↻"),
+          anySelective && open ? el("button", { class: "btn", title: T("data.applyTitle"), onclick: async () => {
             const r = await browser.runtime.sendMessage({ cmd: "applyKeyRules", site: this.site });
             const n = (r.results || []).reduce((a, x) => a + ((x.result && (x.result.local + x.result.session)) || 0), 0);
-            toast(`${n} Einträge entfernt`); this.loadLive();
-          } }, "Eintragsregeln anwenden") : null,
-          confirmButton(`Bereinigen (${delTypes.length})`, delTypes.length ? "Jetzt löschen?" : "Nichts im Modus Löschen", async () => {
+            toast(T("data.removed", { n })); this.loadLive();
+          } }, T("data.apply")) : null,
+          confirmButton(T("data.clean", { n: delTypes.length }), delTypes.length ? T("data.cleanConfirm") : T("data.nothingDelete"), async () => {
             if (!delTypes.length) return;
             const r = await browser.runtime.sendMessage({ cmd: "cleanStorage", site: this.site });
-            toast("Gelöscht: " + r.map(x => x.name).join(", ")); this.loadLive();
+            toast(T("data.deletedList", { list: r.map(x => x.name).join(", ") })); this.loadLive();
           }, "primary"),
-          confirmButton("Alle löschen", "Alle Website-Daten löschen?", async () => {
+          confirmButton(T("data.deleteAll"), T("data.deleteAllConfirm"), async () => {
             for (const t of CC.WHOLE_TYPES) await browser.runtime.sendMessage({ cmd: "deleteStorageNow", site: this.site, type: t });
-            toast("Alle Website-Daten der Seite gelöscht"); this.loadLive();
+            toast(T("data.allDeleted")); this.loadLive();
           }, "danger")),
         ...content);
 
       // 3. Eintragsregeln
       if (this.showKeyRules) { this.openState.entryRules = true; this.showKeyRules = false; }
-      this.sub(this.entryRulesEl, "entryRules", anySelective && !this.compact, `Eintragsregeln (${st.keyRules.length})`, null,
+      this.sub(this.entryRulesEl, "entryRules", anySelective && !this.compact, T("data.entryRules", { n: st.keyRules.length }), null,
         entryRuleTable(st.keyRules, {
           live: open && data && !this.live.error ? data : null,
           onChange: (noRedraw) => { if (noRedraw) { this._storageDirty = false; this.save(false).then(() => { this._storageDirty = true; }); } else this.save(true); },
@@ -1087,27 +1084,26 @@
       const auto = this.archive.filter(e => e.autoRestore).length;
       const missing = this.archive.filter(e => CC.archiveStatus(e, currentById) === "missing");
       const redraw = () => this.renderArchive();
-      this.sub(this.archiveEl, "cookieArchive", !this.compact, `Cookie-Archiv (${this.archive.length})`,
-        [auto ? el("span", { class: "badge c-arch" }, `⟲ ${auto} beim Start`) : null,
-         missing.length ? el("span", { class: "badge" }, `${missing.length} aktuell fehlend`) : null],
+      this.sub(this.archiveEl, "cookieArchive", !this.compact, T("sarch.title", { n: this.archive.length }),
+        [auto ? el("span", { class: "badge c-arch" }, T("sarch.onStart", { n: auto })) : null,
+         missing.length ? el("span", { class: "badge" }, T("sarch.missing", { n: missing.length })) : null],
         el("div", { class: "toolbar" },
           archiveBulkBar(this.archSelected, redraw),
           el("span", { class: "spacer" }),
-          missing.length ? el("button", { class: "btn", title: "Neueste Version aller aktuell fehlenden Cookies setzen", onclick: () => {
+          missing.length ? el("button", { class: "btn", title: T("sarch.restoreMissingTitle"), onclick: () => {
             const newest = new Map();
             for (const e of missing) if (!newest.has(e.key) || newest.get(e.key).savedAt < e.savedAt) newest.set(e.key, e);
             restoreAids([...newest.values()].map(e => e.aid));
-          } }, "Fehlende zurückholen") : null),
+          } }, T("sarch.restoreMissing")) : null),
         archiveTable(this.archive, { currentById, containers: this.containers, compact: this.compact, selected: this.archSelected, onSelect: redraw }),
-        el("p", { class: "hint" }, "⟲ = beim Browserstart auf diese Version zurücksetzen. Abgelaufene Versionen werden beim Zurückholen verlängert (Einstellungen). ",
-          "Tipp: Für Cookies mit Autostart zusätzlich eine Behalten-Regel setzen, sonst löscht die nächste Bereinigung sie wieder."));
+        el("p", { class: "hint" }, T("sarch.hint")));
     }
 
     setQuick(name, value) {
       const sc = this.sc();
       sc.rules = sc.rules.filter(r => !(r.quick && r.name === name));
       if (CC.ACTIONS.includes(value)) {
-        sc.rules.unshift(CC.newRule({ match: "exact", name, action: value, quick: true, note: "Schnellregel" }));
+        sc.rules.unshift(CC.newRule({ match: "exact", name, action: value, quick: true, note: T("rules.quick") }));
       }
       this.save(true);
     }
@@ -1116,9 +1112,9 @@
     renderRules() {
       const sc = this.sc();
       if (this.showRules) { this.openState.cookieRules = true; this.showRules = false; }
-      this.sub(this.rulesEl, "cookieRules", !this.compact, `Cookie-Regeln (${sc.rules.length})`, null,
+      this.sub(this.rulesEl, "cookieRules", !this.compact, T("site.rules", { n: sc.rules.length }), null,
         ruleTable(sc.rules, {
-          containers: this.containers, cookies: this.cookies, addLabel: "+ Cookie-Regel",
+          containers: this.containers, cookies: this.cookies, addLabel: T("rules.add"),
           onChange: () => this.save(false), onStructure: () => this.save(true)
         }));
     }
