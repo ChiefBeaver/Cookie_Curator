@@ -115,7 +115,7 @@ optional im Intervall und manuell.
   Entfernen erfolgt mit korrektem `partitionKey`, `firstPartyDomain` und `storeId`
 - Container werden unterstützt (Spalte Container, Regel-Feld Container)
 - Konfiguration in `storage.local` unter `cc_config`, Protokoll unter `cc_log`
-- Nur Cookies – localStorage/IndexedDB/Cache werden nicht verwaltet
+- Website-Daten (localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker, HTTP-Cache) siehe Abschnitt *Website-Daten*
 
 ## Dateien
 
@@ -123,7 +123,9 @@ optional im Intervall und manuell.
 manifest.json
 background.js        Trigger, Blockieren, Protokoll, Badge
 lib/core.js          Regel-Engine, Klassifizierung, Domains, Cookie-API
+lib/pagefns.js       Funktionen im Seitenkontext (Live-Ansicht, Einzelaktionen)
 ui/ui.js, ui/ui.css  gemeinsame UI (Seiten-Editor, Regel-Tabelle)
+ui/tables.js         veränderbare Spaltenbreiten
 popup/               Toolbar-Popup
 options/             Dashboard
 page/cache-purge.js  löscht Cache Storage beim nächsten Seitenaufruf
