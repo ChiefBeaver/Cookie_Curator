@@ -986,13 +986,13 @@
     }
 
     swTable(data) {
-      if (data.sw == null) return this.liveSection("serviceWorkers", "Service Worker", T("data.unreadable") + (data.errors && data.errors.sw ? ": " + data.errors.sw : ""), [this.deleteTypeButton("serviceWorkers")], null);
+      if (data.sw == null) return this.liveSection("serviceWorkers", CC.STORAGE_LABEL.serviceWorkers, T("data.unreadable") + (data.errors && data.errors.sw ? ": " + data.errors.sw : ""), [this.deleteTypeButton("serviceWorkers")], null);
       const rows = data.sw.map(w => el("tr", {},
         el("td", { class: "mono" }, w.scope),
         el("td", { class: "mono dim val", title: w.script }, w.script),
         el("td", {}, el("span", { class: "pill " + (w.state === "activated" ? "a-keep" : "a-delete") }, w.state), w.controlsPage ? el("span", { class: "badge", style: "margin-left:4px", title: T("data.controlsTitle") }, T("data.controls")) : null),
         el("td", { class: "nowrap" }, confirmButton(T("data.unregister"), T("data.sure"), () => this.itemAction("unregisterSw", [w.scope], T("data.swUnregistered")), "danger small"))));
-      return this.liveSection("serviceWorkers", "Service Worker", T("data.swSummary", { n: data.sw.length }), [this.deleteTypeButton("serviceWorkers")],
+      return this.liveSection("serviceWorkers", CC.STORAGE_LABEL.serviceWorkers, T("data.swSummary", { n: data.sw.length }), [this.deleteTypeButton("serviceWorkers")],
         el("div", { class: "table-scroll keys-scroll" }, el("table", { class: "grid" },
           el("thead", {}, el("tr", {}, el("th", {}, T("data.scope")), el("th", {}, T("data.script")), el("th", {}, T("data.status")), el("th", {}, ""))),
           el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: 4, class: "empty" }, T("data.noSw")))))));

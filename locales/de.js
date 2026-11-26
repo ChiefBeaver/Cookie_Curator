@@ -569,5 +569,9 @@ I18N.register("de", {
   "popup.noSite": "Diese Seite hat keine Cookies oder Website-Daten (z. B. about:, Erweiterungs- oder Dateiseite).",
   "popup.noSiteHint": "Alle Seiten und globale Einstellungen findest du im Dashboard.",
   "popup.cookiesFor": "Cookies für ",
-  "tables.resizeTitle": "Ziehen: Spaltenbreite ändern · Doppelklick: Breiten zurücksetzen"
+  "tables.resizeTitle": "Ziehen: Spaltenbreite ändern · Doppelklick: Breiten zurücksetzen",
+
+  /* Container (lib/core.js) */
+  "container.default": "Standard",
+  "container.private": "Privat"
 });

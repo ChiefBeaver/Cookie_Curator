@@ -6,7 +6,10 @@
  * Grenze: Firefox-Eigenheiten (Partitionen, browsingData-Verhalten) werden nicht nachgebildet. */
 (function(){
  const L=()=>{const ls=[];return {addListener:f=>ls.push(f),removeListener:f=>{const i=ls.indexOf(f);if(i>=0)ls.splice(i,1)},_ls:ls,_fire:(...a)=>Promise.all(ls.map(f=>f(...a)))}};
- const saved=JSON.parse(sessionStorage.getItem('mockstore')||'{}');
+ // Zustand zusätzlich in window.name: Chromium schreibt sessionStorage asynchron, ein sofortiges
+ // location.reload() (z. B. nach dem Sprachwechsel) sähe sonst manchmal den alten Stand
+ const fromName=()=>{try{return window.name.startsWith('mockstore:')?JSON.parse(window.name.slice(10)):null}catch(e){return null}};
+ const saved=fromName()||JSON.parse(sessionStorage.getItem('mockstore')||'{}');
  const store=saved.store||{};
  const st=L(); const ck=L(); const msg=L(); const startup=L();
  const now=Date.now()/1000;
@@ -17,7 +20,7 @@
   C('lang','www.example.com',{value:'de'}),C('IDE','.doubleclick.net',{partitionKey:{topLevelSite:'https://example.com'},sameSite:'no_restriction'}),
   C('session','.github.com'),C('cto_bundle','.srf.ch'),
  ];
- const persist=()=>sessionStorage.setItem('mockstore',JSON.stringify({store,cookies}));
+ const persist=()=>{const j=JSON.stringify({store,cookies});sessionStorage.setItem('mockstore',j);window.name='mockstore:'+j;};
  const id=c=>[c.storeId,c.domain,c.path,c.name,c.firstPartyDomain||'',(c.partitionKey&&c.partitionKey.topLevelSite)||''].join('|');
  const mkS=(o)=>{const m=new Map(Object.entries(o));return{get length(){return m.size},key:i=>[...m.keys()][i],getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),_m:m}};
  window.__page={localStorage:mkS({'_ga_tracker':'GA1.2.3','theme':'dark','auth.token':'eyJhbGciOi...','ads_seen':'[1,2,3]'}),sessionStorage:mkS({'tmp_scroll':'420','wizardStep':'3'})};

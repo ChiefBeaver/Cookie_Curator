@@ -570,5 +570,9 @@ I18N.register("en", {
   "popup.noSite": "This page has no cookies or site data (e.g. about:, extension or file page).",
   "popup.noSiteHint": "You will find all sites and global settings in the dashboard.",
   "popup.cookiesFor": "Cookies for ",
-  "tables.resizeTitle": "Drag: change column width · Double-click: reset widths"
+  "tables.resizeTitle": "Drag: change column width · Double-click: reset widths",
+
+  /* Container (lib/core.js) */
+  "container.default": "Default",
+  "container.private": "Private"
 });
