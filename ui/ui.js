@@ -473,17 +473,15 @@
       const r = await browser.runtime.sendMessage({ cmd: "deleteCookiesDetailed", cookies, reason });
       const n = r.removedIds.length;
       if (r.failed.length) {
-        toast(`${n} gelöscht, ${r.failed.length} konnten nicht gelöscht werden: ${[...new Set(r.failed.map(f => f.name + " (" + f.domain + ")"))].join(", ")}. Details in der Browser-Konsole (Strg+Umschalt+J).`, "err", 12000);
+        toast(T("del.failed", { n, failed: r.failed.length, list: [...new Set(r.failed.map(f => f.name + " (" + f.domain + ")"))].join(", ") }), "err", 12000);
         return { n, back: [] };
       }
-      toast(`${n} Cookie(s) gelöscht`);
+      toast(T("del.done", { n }));
       await new Promise(res => setTimeout(res, 1500));
       const ids = new Set(r.removedIds);
       const back = (await CC.getCookiesForSite(this.site)).filter(c => ids.has(CC.cookieId(c)));
       if (back.length) {
-        toast(`${back.length} von ${n} gelöschten Cookies wurden sofort wieder gesetzt (${[...new Set(back.map(c => c.name))].join(", ")}). ` +
-          "Die Seite läuft noch – in einem Tab oder eingebettet, z. B. in einer Seitenleiste oder einer anderen Erweiterung. " +
-          "Dauerhaft weg: Seite schliessen oder für diese Cookies die Aktion „Blockieren“ wählen.", "warn", 12000);
+        toast(T("del.back", { back: back.length, n, list: [...new Set(back.map(c => c.name))].join(", ") }), "warn", 12000);
       }
       return { n, back };
     }
@@ -535,8 +533,8 @@
       this.root.append(
         this.summaryEl,
         this.generalEl,
-        card("cookieCard", true, "cookie-card", "Cookies", this.cookieHead, this.policyEl, this.cookiesEl, this.rulesEl, this.archiveEl),
-        card("dataCard", !this.compact, "data-card", "Website-Daten", this.dataHead, this.dataPolicyEl, this.storageEl, this.entryRulesEl));
+        card("cookieCard", true, "cookie-card", T("site.cookies"), this.cookieHead, this.policyEl, this.cookiesEl, this.rulesEl, this.archiveEl),
+        card("dataCard", !this.compact, "data-card", T("site.data"), this.dataHead, this.dataPolicyEl, this.storageEl, this.entryRulesEl));
       this.renderSummary();
       this.renderGeneral();
       this.renderPolicy();
@@ -553,24 +551,24 @@
       const sc = this.cfg.sites[this.site];
       this.summaryEl.textContent = "";
       this.summaryEl.append(
-        el("span", { class: "stat muted" }, open ? "Tab offen" : "kein Tab offen"),
-        sc && !CC.isSiteConfigEmpty(sc) ? el("span", { class: "badge configured" }, "konfiguriert") : el("span", { class: "badge" }, "nur globale Einstellungen"));
+        el("span", { class: "stat muted" }, open ? T("site.tabOpen") : T("site.noTab")),
+        sc && !CC.isSiteConfigEmpty(sc) ? el("span", { class: "badge configured" }, T("site.configured")) : el("span", { class: "badge" }, T("site.globalOnly")));
       // Kopfzeilen der beiden Bereiche
       if (this.cookieHead) {
         this.cookieHead.textContent = "";
         this.cookieHead.append(
-          el("span", { class: "stat" }, el("b", {}, String(this.cookies.length)), " Cookies ·"),
-          el("span", { class: "stat s-keep" }, el("b", {}, String(counts.keep)), " behalten"),
-          el("span", { class: "stat s-delete" }, el("b", {}, String(counts.delete)), " löschen"),
-          el("span", { class: "stat s-block" }, el("b", {}, String(counts.block)), " blockiert"));
+          el("span", { class: "stat" }, el("b", {}, String(this.cookies.length)), T("site.statCookies")),
+          el("span", { class: "stat s-keep" }, el("b", {}, String(counts.keep)), T("site.statKeep")),
+          el("span", { class: "stat s-delete" }, el("b", {}, String(counts.delete)), T("site.statDelete")),
+          el("span", { class: "stat s-block" }, el("b", {}, String(counts.block)), T("site.statBlock")));
       }
       if (this.dataHead) {
         const del = CC.storageDeleteTypes(this.cfg, this.site);
         const selective = ["localStorage", "sessionStorage"].filter(t => CC.effectiveStorageMode(this.cfg, this.site, t) === "selective");
         this.dataHead.textContent = "";
         this.dataHead.append(
-          del.length ? el("span", { class: "badge a-delete" }, "löscht: " + del.map(t => CC.STORAGE_LABEL[t]).join(", ")) : el("span", { class: "stat muted" }, "alles behalten"),
-          ...(selective.length ? [el("span", { class: "badge c-consent" }, "selektiv: " + selective.join(", "))] : []));
+          del.length ? el("span", { class: "badge a-delete" }, T("site.deletes", { list: del.map(t => CC.STORAGE_LABEL[t]).join(", ") })) : el("span", { class: "stat muted" }, T("site.keepAll")),
+          ...(selective.length ? [el("span", { class: "badge c-consent" }, T("site.selective", { list: selective.join(", ") }))] : []));
       }
     }
 
@@ -580,19 +578,19 @@
       const g = this.cfg.settings;
       this.generalEl.textContent = "";
       this.generalEl.append(
-        el("h2", {}, "Allgemein"),
+        el("h2", {}, T("site.general")),
         el("div", { class: "fields" },
-          field("Bereinigen bei Tab-Schliessen",
-            select([["inherit", `Erben (${g.cleanOnTabClose ? "An" : "Aus"})`], ["on", "An"], ["off", "Aus"]], sc.tabClose,
+          field(T("site.tabClose"),
+            select([["inherit", T("site.inherit", { value: g.cleanOnTabClose ? T("site.on") : T("site.off") })], ["on", T("site.on")], ["off", T("site.off")]], sc.tabClose,
               v => { this.sc().tabClose = v; this.save(); this.renderGeneral(); }),
-            "Wenn der letzte Tab dieser Seite geschlossen wird (nach Verzögerung), wird bereinigt: Cookies mit Aktion Löschen und Website-Daten im Modus Löschen."),
-          field("Notiz",
-            el("input", { value: sc.note || "", placeholder: "z. B. Login nötig, Consent behalten", onchange: e => { this.sc().note = e.target.value; this.save(); } }))),
+            T("site.tabCloseHelp")),
+          field(T("site.note"),
+            el("input", { value: sc.note || "", placeholder: T("site.notePlaceholder"), onchange: e => { this.sc().note = e.target.value; this.save(); } }))),
         el("div", { class: "row-actions" },
-          el("span", { class: "hint", style: "margin:0" }, "Gilt für Cookies und Website-Daten dieser Seite."),
+          el("span", { class: "hint", style: "margin:0" }, T("site.appliesBoth")),
           el("span", { class: "spacer" }),
           purgeButton(this.site, () => { if (this.onPurged) this.onPurged(); else this.reloadCookies().then(() => this.render()); },
-            { label: "Alles löschen (Cookies, Website-Daten, Konfiguration)" })));
+            { label: T("site.purgeAll") })));
     }
 
     /* ---------- Cookies: Richtlinie ---------- */
@@ -600,18 +598,18 @@
       const sc = this.sc();
       const g = this.cfg.settings;
       const lbl = a => CC.ACTION_LABEL[a] || a;
-      this.sub(this.policyEl, "cookiePolicy", true, "Richtlinie", null,
+      this.sub(this.policyEl, "cookiePolicy", true, T("policy.title"), null,
         el("div", { class: "fields" },
-          field("Standard für übrige Cookies",
-            select([["inherit", `Erben (${lbl(g.defaultAction)})`], ["keep", "Behalten"], ["delete", "Löschen"]], sc.defaultAction,
+          field(T("policy.default"),
+            select([["inherit", T("site.inherit", { value: lbl(g.defaultAction) })], ["keep", lbl("keep")], ["delete", lbl("delete")]], sc.defaultAction,
               v => { this.sc().defaultAction = v; this.save(); this.renderPolicy(); }),
-            "Gilt für Cookies, die weder von einer Cookie-Regel noch von einer Kategorie erfasst werden."),
+            T("policy.defaultHelp")),
           ...["consent", "auth", "tracking"].map(cat =>
-            field("Kategorie " + CC.CATEGORY_LABEL[cat],
-              select([["inherit", `Erben (${lbl(g.categories[cat])})`], ["keep", "Behalten"], ["delete", "Löschen"], ["block", "Blockieren"], ["none", "Keine (ignorieren)"]],
+            field(T("policy.category", { category: CC.CATEGORY_LABEL[cat] }),
+              select([["inherit", T("site.inherit", { value: lbl(g.categories[cat]) })], ["keep", lbl("keep")], ["delete", lbl("delete")], ["block", lbl("block")], ["none", T("policy.none")]],
                 sc.categories[cat], v => { this.sc().categories[cat] = v; this.save(); this.renderPolicy(); }),
-              "Automatisch erkannte Cookies dieser Kategorie (Muster im Dashboard → Kategorien)."))),
-        el("p", { class: "hint" }, "Reihenfolge: Cookie-Regeln der Seite → globale Cookie-Regeln → Kategorie → Standard der Seite → globaler Standard."));
+              T("policy.categoryHelp")))),
+        el("p", { class: "hint" }, T("policy.order")));
     }
 
     /* ---------- Cookie-Tabelle ---------- */
@@ -640,7 +638,7 @@
       const showStore = multiStore || !this.compact;
 
       const th = (key, label, title) => el("th", {
-        class: "sortable" + (k === key ? " sorted" : ""), title: title || "Sortieren",
+        class: "sortable" + (k === key ? " sorted" : ""), title: title || T("ck.sort"),
         onclick: () => { this.sort = { key, dir: k === key ? -d : 1 }; this.renderCookies(); }
       }, label, k === key ? (d > 0 ? " ▴" : " ▾") : "");
 
@@ -654,9 +652,9 @@
         const sc = this.cfg.sites[this.site];
         const quick = sc && sc.rules.find(r => r.quick && r.name === c.name);
         let qv = quick ? quick.action : (ev.source === "site-rule" || ev.source === "global-rule") ? "rule" : "auto";
-        const qOpts = [["auto", "Auto"], ["keep", "Behalten"], ["delete", "Löschen"], ["block", "Blockieren"]];
-        if (qv === "rule") qOpts.splice(1, 0, ["rule", "Regel", true]);
-        const quickSel = select(qOpts, qv, v => this.setQuick(c.name, v), { class: "quick act-" + (quick ? quick.action : "auto"), title: "Schnellregel (exakter Name) für diese Seite" });
+        const qOpts = [["auto", T("ck.auto")], ["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete], ["block", CC.ACTION_LABEL.block]];
+        if (qv === "rule") qOpts.splice(1, 0, ["rule", T("ck.rule"), true]);
+        const quickSel = select(qOpts, qv, v => this.setQuick(c.name, v), { class: "quick act-" + (quick ? quick.action : "auto"), title: T("ck.quickTitle") });
         const isOpen = this.expanded.has(id);
 
         const av = arch.get(id) || [];
@@ -665,9 +663,9 @@
           el("td", {}, quickSel),
           el("td", { class: "name", onclick: () => { isOpen ? this.expanded.delete(id) : this.expanded.add(id); this.renderCookies(); } },
             el("span", { class: "caret" }, isOpen ? "▾" : "▸"),
-            el("code", {}, c.name || "(leer)"), " ", catBadge(ev.category, ev.pattern),
-            CC.isThirdParty(c) ? el("span", { class: "badge c-3p", title: "Drittanbieter-Cookie, partitioniert unter dieser Seite" }, "3P") : null,
-            av.length ? el("span", { class: "badge c-arch", title: `${av.length} archivierte Version(en)` + (av.some(a => a.autoRestore) ? ", wird beim Start zurückgesetzt" : "") }, (av.some(a => a.autoRestore) ? "⟲ " : "") + "Archiv " + av.length) : null),
+            el("code", {}, c.name || T("ck.empty")), " ", catBadge(ev.category, ev.pattern),
+            CC.isThirdParty(c) ? el("span", { class: "badge c-3p", title: T("ck.thirdParty") }, "3P") : null,
+            av.length ? el("span", { class: "badge c-arch", title: T("ck.archived", { n: av.length }) + (av.some(a => a.autoRestore) ? T("ck.archivedAuto") : "") }, (av.some(a => a.autoRestore) ? "⟲ " : "") + T("ck.archiveBadge", { n: av.length })) : null),
           el("td", { class: "mono dim", title: c.domain }, c.domain),
           this.compact ? null : el("td", { class: "mono dim" }, c.path),
           el("td", {}, flagTags(c)),
@@ -679,56 +677,56 @@
         ));
         if (isOpen) tbody.append(el("tr", { class: "detail" }, el("td", { colspan: cols }, this.detail(c, ev))));
       }
-      if (!rows.length) tbody.append(el("tr", {}, el("td", { colspan: cols, class: "empty" }, this.cookies.length ? "Kein Cookie entspricht dem Filter." : "Diese Seite hat aktuell keine Cookies.")));
+      if (!rows.length) tbody.append(el("tr", {}, el("td", { colspan: cols, class: "empty" }, this.cookies.length ? T("ck.noMatch") : T("ck.none"))));
 
-      const filterChips = [["all", "Alle"], ["keep", "Behalten"], ["delete", "Löschen"], ["block", "Blockiert"], ["consent", "Consent"], ["auth", "Login"], ["tracking", "Tracking"], ["uncat", "Ohne Kat."], ["3p", "3P"]];
+      const filterChips = [["all", T("ck.chipAll")], ["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete], ["block", T("ck.chipBlocked")], ["consent", CC.CATEGORY_LABEL.consent], ["auth", T("ck.chipLogin")], ["tracking", CC.CATEGORY_LABEL.tracking], ["uncat", T("ck.chipUncat")], ["3p", "3P"]];
       const toDelete = list.filter(x => x.ev.action !== "keep").map(x => x.c);
 
       const sel = list.filter(x => this.selected.has(x.id)).map(x => x.c);
       const visibleIds = rows.map(r => r.id);
       const allBox = el("input", {
-        type: "checkbox", title: "Alle sichtbaren auswählen",
+        type: "checkbox", title: T("ck.selectVisible"),
         checked: visibleIds.length > 0 && visibleIds.every(i => this.selected.has(i)),
         onchange: e => { for (const i of visibleIds) e.target.checked ? this.selected.add(i) : this.selected.delete(i); this.renderCookies(); }
       });
       const bulk = el("div", { class: "toolbar bulk" + (sel.length ? "" : " idle") },
-        el("span", { class: "dim" }, sel.length ? `${sel.length} ausgewählt` : "Auswahl: Häkchen links setzen"),
+        el("span", { class: "dim" }, sel.length ? T("archive.selected", { n: sel.length }) : T("ck.selectHint")),
         el("button", {
-          class: "btn", disabled: !sel.length, title: "Aktuellen Stand der ausgewählten Cookies ins Archiv legen",
+          class: "btn", disabled: !sel.length, title: T("ck.archiveTitle"),
           onclick: async () => {
             const r = await browser.runtime.sendMessage({ cmd: "archive", cookies: sel });
             this.selected.clear(); this.renderCookies();
-            toast(`${r.added} archiviert` + (r.skipped ? `, ${r.skipped} unverändert (bereits archiviert)` : ""));
+            toast(T("ck.archivedN", { n: r.added }) + (r.skipped ? T("ck.skipped", { n: r.skipped }) : ""));
           }
-        }, "Archivieren"),
-        sel.length ? confirmButton("Archivieren + löschen", `${sel.length} archivieren & löschen?`, async () => {
+        }, T("ck.archive")),
+        sel.length ? confirmButton(T("ck.archiveDelete"), T("ck.archiveDeleteConfirm", { n: sel.length }), async () => {
           const r = await browser.runtime.sendMessage({ cmd: "archiveAndDelete", cookies: sel });
           this.selected.clear();
-          toast(`${r.added} archiviert, ${r.deleted} gelöscht`);
+          toast(T("ck.archivedDeleted", { added: r.added, deleted: r.deleted }));
         }, "", "cookies-archdel") : null,
-        sel.length ? confirmButton("Löschen", `${sel.length} löschen?`, async () => {
+        sel.length ? confirmButton(T("ck.delete"), T("ck.deleteConfirm", { n: sel.length }), async () => {
           this.selected.clear();
-          await this.deleteWithReport(sel, "manuell: Auswahl");
+          await this.deleteWithReport(sel, T("ck.reasonSelection"));
         }, "danger", "cookies-del-sel") : null,
-        sel.length ? el("button", { class: "btn", onclick: () => { this.selected.clear(); this.renderCookies(); } }, "Auswahl aufheben") : null
+        sel.length ? el("button", { class: "btn", onclick: () => { this.selected.clear(); this.renderCookies(); } }, T("ck.clearSelection")) : null
       );
 
-      this.sub(this.cookiesEl, "cookieContent", true, "Inhalt", [el("span", { class: "stat muted" }, `${this.cookies.length} Cookies`)],
+      this.sub(this.cookiesEl, "cookieContent", true, T("ck.content"), [el("span", { class: "stat muted" }, T("ck.count", { n: this.cookies.length }))],
         el("div", { class: "toolbar" },
           el("input", {
-            id: "cc-filter", type: "search", placeholder: "Filter: Name, Domain, Wert …", value: this.filter,
+            id: "cc-filter", type: "search", placeholder: T("ck.filter"), value: this.filter,
             oninput: e => { this.filter = e.target.value; this.renderCookies(); }
           }),
           el("div", { class: "chips" }, filterChips.map(([v, l]) =>
             el("button", { class: "chip" + (this.actionFilter === v ? " on" : ""), onclick: () => { this.actionFilter = v; this.renderCookies(); } }, l))),
           el("span", { class: "spacer" }),
-          el("button", { class: "btn", title: "Neu lesen", onclick: () => this.reloadCookies().then(() => { this.renderSummary(); this.renderCookies(); }) }, "↻"),
-          confirmButton(`Bereinigen (${toDelete.length})`, `Wirklich ${toDelete.length} löschen?`, async () => {
+          el("button", { class: "btn", title: T("ck.reload"), onclick: () => this.reloadCookies().then(() => { this.renderSummary(); this.renderCookies(); }) }, "↻"),
+          confirmButton(T("ck.clean", { n: toDelete.length }), T("ck.cleanConfirm", { n: toDelete.length }), async () => {
             const r = await browser.runtime.sendMessage({ cmd: "cleanSite", site: this.site });
-            toast(`${r.length} gelöscht (Cookies und Website-Daten nach Richtlinie)`);
+            toast(T("ck.cleaned", { n: r.length }));
           }, "primary", "cookies-clean"),
-          confirmButton("Alle löschen", `Alle ${this.cookies.length} löschen?`, async () => {
-            await this.deleteWithReport(this.cookies.slice(), "manuell: alle Cookies der Seite");
+          confirmButton(T("ck.deleteAll"), T("ck.deleteAllConfirm", { n: this.cookies.length }), async () => {
+            await this.deleteWithReport(this.cookies.slice(), T("ck.reasonAll"));
           }, "danger", "cookies-del-all")
         ),
         bulk,
@@ -736,16 +734,16 @@
           el("table", { class: "grid cookie-table" },
             el("thead", {}, el("tr", {},
               el("th", {}, allBox),
-              el("th", { title: "Schnellregel für diesen Cookie-Namen" }, "Regel"),
-              th("name", "Name"),
-              th("domain", "Domain"),
-              this.compact ? null : el("th", {}, "Pfad"),
-              el("th", {}, "Flags"),
-              th("expiry", "Ablauf"),
-              this.compact ? null : th("size", "Grösse"),
-              !this.compact && showStore ? el("th", {}, "Container") : null,
-              th("action", "Ergebnis", "Was bei der nächsten Bereinigung passiert"),
-              this.compact ? null : el("th", {}, "Begründung")
+              el("th", { title: T("ck.ruleHeadTitle") }, T("ck.rule")),
+              th("name", T("rules.name")),
+              th("domain", T("rules.domain")),
+              this.compact ? null : el("th", {}, T("rules.path")),
+              el("th", {}, T("ck.flags")),
+              th("expiry", T("archive.expiry")),
+              this.compact ? null : th("size", T("ck.size")),
+              !this.compact && showStore ? el("th", {}, T("rules.container")) : null,
+              th("action", T("ck.result"), T("ck.resultTitle")),
+              this.compact ? null : el("th", {}, T("ck.reason"))
             )),
             tbody))
       );
@@ -757,64 +755,64 @@
 
     detail(c, ev) {
       const kv = [
-        ["Name", c.name], ["Wert", c.value], ["Domain", c.domain], ["Host-only", String(!!c.hostOnly)],
-        ["Pfad", c.path], ["Secure", String(!!c.secure)], ["HttpOnly", String(!!c.httpOnly)],
-        ["SameSite", c.sameSite], ["Sitzungscookie", String(!!c.session)],
-        ["Ablauf", c.session ? "Ende der Sitzung" : CC.fmtDate(c.expirationDate) + "  (" + CC.fmtExpiry(c) + ")"],
-        ["Container", (this.containers[c.storeId] || "?") + "  [" + c.storeId + "]"],
+        [T("rules.name"), c.name], [T("dt.value"), c.value], [T("rules.domain"), c.domain], ["Host-only", String(!!c.hostOnly)],
+        [T("rules.path"), c.path], ["Secure", String(!!c.secure)], ["HttpOnly", String(!!c.httpOnly)],
+        ["SameSite", c.sameSite], [T("dt.session"), String(!!c.session)],
+        [T("archive.expiry"), c.session ? T("dt.endOfSession") : CC.fmtDate(c.expirationDate) + "  (" + CC.fmtExpiry(c) + ")"],
+        [T("rules.container"), (this.containers[c.storeId] || "?") + "  [" + c.storeId + "]"],
         ["firstPartyDomain", c.firstPartyDomain || "—"],
         ["partitionKey", c.partitionKey ? JSON.stringify(c.partitionKey) : "—"],
-        ["Grösse", CC.cookieSize(c) + " Bytes (Name + Wert)"],
-        ["Kategorie", ev.category ? CC.CATEGORY_LABEL[ev.category] + "  (Muster " + ev.pattern + ")" : "—"],
-        ["Entscheidung", CC.ACTION_LABEL[ev.action] + " – " + ev.reason]
+        [T("ck.size"), T("dt.bytes", { n: CC.cookieSize(c) })],
+        [T("dt.category"), ev.category ? CC.CATEGORY_LABEL[ev.category] + "  " + T("dt.pattern", { pattern: ev.pattern }) : "—"],
+        [T("dt.decision"), CC.ACTION_LABEL[ev.action] + " – " + ev.reason]
       ];
       let decoded = null;
       try { const d = decodeURIComponent(c.value); if (d !== c.value) decoded = d; } catch (e) {}
-      if (decoded) kv.splice(2, 0, ["Wert (dekodiert)", decoded]);
+      if (decoded) kv.splice(2, 0, [T("dt.valueDecoded"), decoded]);
 
       return el("div", { class: "detail-box" },
         el("dl", {}, kv.map(([k, v]) => [el("dt", {}, k), el("dd", { class: "mono" }, v == null ? "—" : String(v))])),
         el("div", { class: "row-actions" },
-          el("button", { class: "btn", onclick: () => copyText(c.value) }, "Wert kopieren"),
-          el("button", { class: "btn", onclick: () => copyText(JSON.stringify(c, null, 2)) }, "JSON kopieren"),
+          el("button", { class: "btn", onclick: () => copyText(c.value) }, T("dt.copyValue")),
+          el("button", { class: "btn", onclick: () => copyText(JSON.stringify(c, null, 2)) }, T("dt.copyJson")),
           el("button", {
-            class: "btn", title: "Regel mit exaktem Namen, Domain und Pfad anlegen",
+            class: "btn", title: T("dt.preciseTitle"),
             onclick: () => {
               this.sc().rules.unshift(CC.newRule({ match: "exact", name: c.name, domain: CC.cookieHost(c), path: c.path, action: ev.action === "keep" ? "keep" : "delete" }));
               this.showRules = true; this.save(true);
-              toast("Regel oben eingefügt – Aktion bei Bedarf anpassen");
+              toast(T("dt.preciseAdded"));
             }
-          }, "Präzise Regel anlegen"),
+          }, T("dt.precise")),
           el("button", {
-            class: "btn", title: "Glob-Regel für alle Cookies mit gleichem Präfix",
+            class: "btn", title: T("dt.prefixTitle"),
             onclick: () => {
               const m = /^([A-Za-z_.\-]+?)[_\-.]?[0-9a-f]{4,}.*$|^([A-Za-z_]+[_\-.])/.exec(c.name);
               const prefix = m ? (m[1] || m[2]) : c.name;
               this.sc().rules.unshift(CC.newRule({ match: "glob", name: prefix + "*", action: ev.action === "keep" ? "keep" : "delete" }));
               this.showRules = true; this.save(true);
-              toast("Glob-Regel " + prefix + "* eingefügt");
+              toast(T("dt.prefixAdded", { pattern: prefix + "*" }));
             }
-          }, "Präfix-Regel anlegen"),
+          }, T("dt.prefix")),
           el("button", {
             class: "btn", onclick: async () => {
               const r = await browser.runtime.sendMessage({ cmd: "archive", cookies: [c] });
-              toast(r.added ? "Archiviert" : "Unverändert – identische Version bereits im Archiv");
+              toast(r.added ? T("dt.archived") : T("dt.unchanged"));
             }
-          }, "Archivieren"),
+          }, T("ck.archive")),
           el("button", {
-            class: "btn", title: "Archivieren und mit Autostart markieren: wird bei jedem Browserstart auf diesen Stand zurückgesetzt",
+            class: "btn", title: T("dt.autostartTitle"),
             onclick: async () => {
               await browser.runtime.sendMessage({ cmd: "archive", cookies: [c] });
               const latest = (await CC.loadArchive()).filter(e => e.key === CC.cookieId(c)).sort((a, b) => b.savedAt - a.savedAt)[0];
               if (latest) await browser.runtime.sendMessage({ cmd: "archiveUpdate", aid: latest.aid, patch: { autoRestore: true } });
-              toast("Archiviert – wird beim Start zurückgesetzt");
+              toast(T("dt.autostartDone"));
             }
-          }, "Archivieren + beim Start zurücksetzen"),
+          }, T("dt.autostart")),
           el("button", {
             class: "btn danger", onclick: async () => {
-              await this.deleteWithReport([c], "manuell: Einzel-Cookie");
+              await this.deleteWithReport([c], T("dt.reasonSingle"));
             }
-          }, "Jetzt löschen")
+          }, T("dt.deleteNow"))
         ),
         this.versionList(c)
       );
@@ -824,14 +822,14 @@
       const versions = this.archiveByKey().get(CC.cookieId(c)) || [];
       if (!versions.length) return null;
       return el("div", { class: "versions" },
-        el("div", { class: "dim", style: "margin:8px 0 4px" }, `Archivierte Versionen (${versions.length})`),
+        el("div", { class: "dim", style: "margin:8px 0 4px" }, T("ver.title", { n: versions.length })),
         el("table", { class: "grid" }, el("tbody", {}, versions.map(e => el("tr", { class: e.autoRestore ? "autorestore" : "" },
-          el("td", { class: "num", title: new Date(e.savedAt).toLocaleString(T("fmt.locale")) }, new Date(e.savedAt).toLocaleString("de-CH")),
-          el("td", { class: "mono val", title: e.cookie.value }, e.cookie.value === c.value ? el("span", { class: "pill a-keep" }, "= aktuell") : (e.cookie.value.length > 60 ? e.cookie.value.slice(0, 60) + "…" : e.cookie.value)),
-          el("td", {}, el("label", { class: "autostart", title: "Beim Browserstart auf diese Version zurücksetzen" },
-            el("input", { type: "checkbox", checked: e.autoRestore, onchange: ev => browser.runtime.sendMessage({ cmd: "archiveUpdate", aid: e.aid, patch: { autoRestore: ev.target.checked } }) }), " beim Start")),
-          el("td", {}, el("button", { class: "btn small", onclick: () => restoreAids([e.aid]) }, "Zurückholen"),
-            el("button", { class: "icon danger", title: "Version entfernen", onclick: () => browser.runtime.sendMessage({ cmd: "archiveRemove", aids: [e.aid] }) }, "✕"))
+          el("td", { class: "num", title: new Date(e.savedAt).toLocaleString(T("fmt.locale")) }, new Date(e.savedAt).toLocaleString(T("fmt.locale"))),
+          el("td", { class: "mono val", title: e.cookie.value }, e.cookie.value === c.value ? el("span", { class: "pill a-keep" }, T("ver.current")) : (e.cookie.value.length > 60 ? e.cookie.value.slice(0, 60) + "…" : e.cookie.value)),
+          el("td", {}, el("label", { class: "autostart", title: T("ver.autostartTitle") },
+            el("input", { type: "checkbox", checked: e.autoRestore, onchange: ev => browser.runtime.sendMessage({ cmd: "archiveUpdate", aid: e.aid, patch: { autoRestore: ev.target.checked } }) }), T("ver.onStart"))),
+          el("td", {}, el("button", { class: "btn small", onclick: () => restoreAids([e.aid]) }, T("archive.restore")),
+            el("button", { class: "icon danger", title: T("ver.remove"), onclick: () => browser.runtime.sendMessage({ cmd: "archiveRemove", aids: [e.aid] }) }, "✕"))
         )))));
     }
 
