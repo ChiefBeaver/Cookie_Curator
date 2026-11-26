@@ -34,9 +34,10 @@ The XPI is not in the Git repository; build it with `python tools/build_xpi.py`.
 
 ## Languages
 
-The interface is available in English and German. The language button (`EN` / `DE`) at the top right of the
+The interface is available in German (default) and English. The language button (`DE` / `EN`) at the top right of the
 popup and the dashboard switches to the next language in turn; the choice applies to all windows and is kept
-(`storage.local` → `cc_lang`). Without a choice, Firefox's language is used, otherwise English.
+(`storage.local` → `cc_lang`). Until a language is chosen, the interface is German. The order of the
+button follows `LANGUAGES` in `lib/i18n.js` (German first, English second); the default is `DEFAULT` there.
 
 **Adding a language** (example French, `fr`):
 

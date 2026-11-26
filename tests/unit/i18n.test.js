@@ -43,7 +43,9 @@ module.exports = [
     assert.equal(I.normalize("de-CH"), "de");
     assert.equal(I.normalize("EN_us"), "en");
     assert.equal(I.normalize("xx"), null);
-    I.setLang("zz"); assert.equal(I.getLang(), "en");
+    I.setLang("zz"); assert.equal(I.getLang(), I.DEFAULT);
+    assert.equal(I.DEFAULT, "de", "Standardsprache Deutsch");
+    assert.equal(I.languages()[0].code, "de", "Deutsch zuerst, Englisch danach");
     const codes = I.languages().map(l => l.code);
     I.setLang(codes[0]); assert.equal(I.next(), codes[1 % codes.length]);
     I.setLang(codes[codes.length - 1]); assert.equal(I.next(), codes[0]);

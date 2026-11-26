@@ -34,9 +34,10 @@ Die XPI ist nicht im Git-Repository; erzeugen mit `python tools/build_xpi.py`.
 
 ## Sprachen
 
-Die Oberfläche gibt es auf Englisch und Deutsch. Der Sprachknopf (`EN` / `DE`) oben rechts im Popup und
+Die Oberfläche gibt es auf Deutsch (Standard) und Englisch. Der Sprachknopf (`DE` / `EN`) oben rechts im Popup und
 im Dashboard wechselt reihum zur nächsten Sprache; die Wahl gilt für alle Fenster und bleibt erhalten
-(`storage.local` → `cc_lang`). Ohne Wahl gilt die Sprache von Firefox, sonst Englisch.
+(`storage.local` → `cc_lang`). Solange keine Sprache gewählt ist, ist die Oberfläche deutsch. Die Reihenfolge
+des Knopfs folgt `LANGUAGES` in `lib/i18n.js` (Deutsch zuerst, Englisch danach); der Standard steht dort unter `DEFAULT`.
 
 **Neue Sprache hinzufügen** (Beispiel Französisch, `fr`):
 

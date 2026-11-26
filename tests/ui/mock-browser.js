@@ -35,7 +35,7 @@
   contextualIdentities:{query:async()=>[]},
   tabs:{executeScript:async(id,d)=>{const w=window.__page;const r=await (new Function('window','location','browser','return '+d.code.replace(/;\s*$/,'')))(w,{host:'www.example.com',origin:'https://www.example.com'},window.browser);return [r];},
    query:async()=>[{id:1,url:'https://www.example.com/',active:true}],get:async()=>({id:1,url:'https://www.example.com/',active:true}),create:async()=>{},onUpdated:L(),onRemoved:L(),onActivated:L()},
-  i18n:{getUILanguage:()=>'de'},
+  i18n:{getUILanguage:()=>'en-US'},   // Browsersprache spielt keine Rolle: Standard ist Deutsch
   runtime:{getURL:p=>new URL('../'+p.replace(/^\//,''),location.href).href,onStartup:startup,onInstalled:L(),onMessage:msg,openOptionsPage(){},
    sendMessage:async m=>{for(let i=0;i<100&&!msg._ls.length;i++)await new Promise(r=>setTimeout(r,20));const r=await Promise.all(msg._ls.map(f=>f(m)));return JSON.parse(JSON.stringify(r.find(x=>x!==undefined)??null))}},
   alarms:{clear(){},create(){},onAlarm:L()},

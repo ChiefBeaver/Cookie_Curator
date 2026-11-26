@@ -85,7 +85,6 @@ function loadBackground({ cookies = [], tabs = [] } = {}) {
     },
     contentScripts: { register: async o => ({ unregister: async () => {} }) },
     browsingData: { remove: async (o, t) => { state.browsingData.push({ o, t }); }, removeCookies: async () => {} },
-    i18n: { getUILanguage: () => "de" },
     runtime: { onStartup: event(), onInstalled: event(), onMessage: event(), openOptionsPage() {} },
     alarms: { clear() {}, create() {}, onAlarm: event() },
     browserAction: { setBadgeText() {}, setBadgeBackgroundColor() {}, setTitle() {} }
