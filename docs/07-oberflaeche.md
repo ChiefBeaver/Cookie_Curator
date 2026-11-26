@@ -207,9 +207,50 @@ Umsetzung ohne Eingriff in den Code, der die Tabellen baut:
 
 ## 7.9 Hilfe-Tab „Funktionsweise“
 
-`options/help.js` baut den Inhalt mit `el()` (kein HTML-String). Reihenfolge auf Wunsch des
+`options/help.js` ist nur der Rahmen (Bausteine, Inhaltsverzeichnis); der Text steht pro Sprache in
+`locales/help/<code>.js` und wird erst beim Öffnen des Tabs geladen (`I18N.loadExtra("help")`, siehe
+7.10). Die Bausteine (`P`, `B`, `TABLE`, `CH` …) bauen den Inhalt mit `el()` (kein HTML-String); das
+Inhaltsverzeichnis entsteht aus den Kapiteln (`CH(id, Titel, …)`). Reihenfolge auf Wunsch des
 Benutzers: **Teil A – das Add-on** (Aufbau, Entscheidungsreihenfolge, Website-Daten inkl.
 sessionStorage-Begründung, Archiv, Rückgängig, Regelfelder, Einrichtung, Grenzen), dann **Teil B –
 Grundlagen** für Einsteiger (was Cookies und Website-Daten sind, Attribute, Praxisbeispiele,
 Partitionierung, Glossar). Hinweis-Kästen nutzen die Klasse `.callout` (vorher `.note`, kollidierte
 mit der Notiz-Spalte der Tabellen).
+
+## 7.10 Sprachen (`lib/i18n.js`, `locales/`)
+
+Die Oberfläche gibt es auf Deutsch (Standard) und Englisch. Kein Text steht mehr im Code: Überall
+steht `I18N.t("schlüssel", { platzhalter })`, die Texte liegen in einer Datei pro Sprache.
+
+| Datei | Inhalt |
+|---|---|
+| `lib/i18n.js` | `LANGUAGES` (Reihenfolge = Sprachknopf), `DEFAULT` (`de`), `FALLBACK` (`en`), `EXTRAS` (welche Sprachen eine Hilfe-Datei haben); `t()`, `init()`, `choose()`, `loadExtra()`, `apply()` |
+| `locales/de.js`, `locales/en.js` | alle Texte als `I18N.register("<code>", { "schlüssel": "Text", … })`; Schlüssel nach Bereich benannt (`ck.*` Cookie-Tabelle, `data.*` Website-Daten, `set.*` Einstellungen …) |
+| `locales/help/<code>.js` | Hilfe-Tab als Funktion, die aus den Bausteinen von `options/help.js` die Kapitel baut |
+| `_locales/<code>/messages.json` | nur die Beschreibung im Add-on-Manager (Firefox-eigenes Format, richtet sich nach der Browsersprache) |
+
+**Texte:** `t("key", { n: 3 })` wählt mit `Intl.PluralRules` `key_one`/`key_other`, falls vorhanden
+(z. B. deutscher Tooltip „1 wird … gelöscht“ / „2 werden …“). Ein Wert kann auch eine Funktion sein
+(so die Hilfe). Fehlt ein Schlüssel in der aktiven Sprache, gilt Englisch (`en.js` ist die Vorlage
+für neue Sprachen), danach der Schlüssel selbst – ein sichtbarer Schlüssel ist also ein Fehler, den
+der Oberflächentest findet. Beschriftungen in `lib/core.js` (`ACTION_LABEL`, `CATEGORY_LABEL`,
+`STORAGE_LABEL` …) sind Getter, die bei jedem Zugriff übersetzen. Statischer Text in HTML trägt
+`data-i18n` bzw. `data-i18n-title`; `I18N.apply()` setzt ihn.
+
+**Laden:** Nur die aktive Sprache und Englisch werden geladen, per `<script>` aus
+`moz-extension://…/locales/<code>.js` (Popup, Dashboard und Hintergrundseite haben ein `document`).
+Jede Datei wird höchstens einmal angefordert, auch wenn sie als gewählte Sprache und Ersatz zugleich
+gebraucht wird. Jeder Kontext ruft vor dem ersten Text `await I18N.init()` auf; Knöpfe und Tabellen
+entstehen erst danach (sonst zeigten sie Schlüssel).
+
+**Sprachknopf** (`UI.languageButton()`, oben rechts in Popup und Dashboard): zeigt den aktiven Code
+und wechselt reihum zur nächsten Sprache aus `LANGUAGES`. `I18N.choose()` speichert zuerst
+`cc_lang` und stellt dann um; `storage.onChanged` erreicht alle offenen Seiten, die sich daraufhin
+neu laden (`I18N.onChange(() => location.reload())`). Die Hintergrundseite lädt nicht neu: ihre
+Texte (Protokoll, Fehler, Tooltip des Symbols) holen die neue Sprache beim nächsten Zugriff, der
+Tooltip wird sofort neu gesetzt. Einträge, die schon im Protokoll stehen, bleiben in der Sprache,
+in der sie geschrieben wurden.
+
+**Seitenkontext:** Funktionen aus `lib/pagefns.js` laufen in der Webseite, wo es kein `I18N` gibt.
+Ihre wenigen Fehlermeldungen sind darum englisch, wie die des Browsers selbst.
+

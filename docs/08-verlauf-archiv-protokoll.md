@@ -51,7 +51,7 @@ egal woher.
 
 ### Was nicht im Verlauf ist
 
-Cookies, Website-Daten, Archiv und Protokoll. Gelöschte Cookies lassen sich nicht über Rückgängig
+Cookies, Website-Daten, Archiv, Protokoll und die Sprache (`cc_lang`). Gelöschte Cookies lassen sich nicht über Rückgängig
 zurückholen – dafür gibt es das Archiv. Das steht auch so neben den Knöpfen
 (`UI.historyButtons`, mit Tooltip der nächsten Aktion und deren Zeitpunkt).
 

@@ -2,7 +2,8 @@
   "manifest_version": 2,
   "name": "Cookie Curator",
   "version": "0.7.0",
-  "description": "Cookies und lokalen Speicher pro Seite steuern: Login- und Consent-Daten behalten, den Rest löschen, blockieren oder archivieren.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "de",
   "author": "ChiefBeaver",
   "browser_specific_settings": {
     "gecko": {
@@ -27,6 +28,7 @@
   ],
   "background": {
     "scripts": [
+      "lib/i18n.js",
       "lib/core.js",
       "lib/pagefns.js",
       "background.js"

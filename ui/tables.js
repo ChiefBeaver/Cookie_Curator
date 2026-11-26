@@ -84,7 +84,7 @@
     ths.forEach((th, i) => {
       const h = document.createElement("span");
       h.className = "cc-col-resize";
-      h.title = "Ziehen: Spaltenbreite ändern · Doppelklick: Breiten zurücksetzen";
+      h.title = I18N.t("tables.resizeTitle");
       h.addEventListener("click", e => e.stopPropagation());              // nicht sortieren
       h.addEventListener("dblclick", e => { e.stopPropagation(); save(key, null); table.dataset.ccUser = ""; fit(table); });
       h.addEventListener("pointerdown", e => {

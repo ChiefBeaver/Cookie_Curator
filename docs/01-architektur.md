@@ -45,6 +45,7 @@ Hintergrundseite. Begründung siehe [09, E-03](09-designentscheidungen.md#e-03-s
 manifest.json            Berechtigungen, Hintergrundskripte, Popup, Dashboard
 background.js            Hintergrundseite: Auslöser, Löschen, Blockieren, Archiv, Protokoll,
                          Verlauf, Website-Daten, Nachrichten-Schnittstelle
+lib/i18n.js              Übersetzungen (global I18N): Sprachwahl (cc_lang), I18N.t(), Laden von locales/
 lib/core.js              Gemeinsame Logik (global CC): Datenmodell, Domains, Regel-Engine,
                          Klassifizierung, Cookie-Hilfen, Archiv-Hilfen, Website-Daten-Logik
 lib/pagefns.js           Funktionen, die im Kontext der Webseite laufen (global PAGE_FNS)
@@ -57,6 +58,8 @@ options/options.html|js  Dashboard: Routing, Seitenübersicht, globale Regeln, K
                          Einstellungen, Archiv, Protokoll, Import/Export
 options/help.js          Inhalt des Tabs „Funktionsweise“
 options/options.css      Dashboard-spezifisches Aussehen
+locales/                 Texte pro Sprache (en.js, de.js); Hilfe pro Sprache in locales/help/
+_locales/                Beschreibung im Add-on-Manager (Firefox-eigenes Format)
 page/cache-purge.js      Löscht Cache Storage beim nächsten Seitenaufruf (Welt MAIN, document_start)
 icons/icon.svg           Symbol
 docs/                    Diese Dokumentation (wird nicht ins XPI gepackt)
@@ -72,9 +75,11 @@ Alle Dateien sind klassische Skripte (keine ES-Module), die sich über globale O
 
 | Kontext | Reihenfolge | Globale Objekte |
 |---|---|---|
-| Hintergrund | `lib/core.js` → `lib/pagefns.js` → `background.js` | `CC`, `PAGE_FNS` |
-| Popup | `lib/core.js` → `ui/ui.js` → `ui/tables.js` → `popup/popup.js` | `CC`, `UI`, `CCTables` |
-| Dashboard | `lib/core.js` → `ui/ui.js` → `ui/tables.js` → `options/help.js` → `options/options.js` | `CC`, `UI`, `CCTables`, `buildHelp` |
+| Hintergrund | `lib/i18n.js` → `lib/core.js` → `lib/pagefns.js` → `background.js` | `I18N`, `CC`, `PAGE_FNS` |
+| Popup | `lib/i18n.js` → `lib/core.js` → `ui/ui.js` → `ui/tables.js` → `popup/popup.js` | `I18N`, `CC`, `UI`, `CCTables` |
+| Dashboard | `lib/i18n.js` → `lib/core.js` → `ui/ui.js` → `ui/tables.js` → `options/help.js` → `options/options.js` | `I18N`, `CC`, `UI`, `CCTables`, `buildHelp` |
+
+Die Sprachdateien `locales/<code>.js` lädt `I18N.init()` bei Bedarf nach (nur aktive Sprache und Englisch).
 
 Warum keine Module: siehe [09, E-05](09-designentscheidungen.md#e-05-klassische-skripte-und-globale-namensräume).
 

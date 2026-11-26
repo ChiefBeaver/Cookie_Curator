@@ -17,7 +17,7 @@ Stand: Version **0.7.0**, getestet mit **Firefox 140 ESR** (Mindestversion laut 
 | [04 – Bereinigung und Löschen](04-bereinigung.md) | Auslöser, Tab-Verfolgung, Löschpfade, Prüfung, Ausweichweg, Blockieren, „Alles löschen“ |
 | [05 – Website-Daten](05-website-daten.md) | localStorage, sessionStorage, IndexedDB, Cache Storage, Service Worker, HTTP-Cache |
 | [06 – Firefox-Interna](06-firefox-interna.md) | Cookie-Speicher, OriginAttributes, Container, Partitionierung, browsingData, Skript-Welten, Grenzwerte |
-| [07 – Oberfläche](07-oberflaeche.md) | Popup, Dashboard, Seiten-Editor, Rendering, Tabellen, Bestätigungen, Meldungen |
+| [07 – Oberfläche](07-oberflaeche.md) | Popup, Dashboard, Seiten-Editor, Rendering, Tabellen, Bestätigungen, Meldungen, Sprachen |
 | [08 – Rückgängig, Archiv, Protokoll](08-verlauf-archiv-protokoll.md) | Konfigurations-Verlauf, Cookie-Archiv mit Autostart, Protokoll |
 | [09 – Designentscheidungen](09-designentscheidungen.md) | Entscheidungen mit Alternativen und Begründung, inkl. Lehren aus Fehlern |
 | [10 – Grenzen, Tests, Erweiterung](10-grenzen-tests-erweiterung.md) | Bekannte Grenzen, technische Schulden, Teststrategie, wie man erweitert |

@@ -1,7 +1,10 @@
 # Wiki aus docs/ aktualisieren
 #
 # Bei jeder Änderung an docs/ (oder am Umwandlungsskript) auf main erzeugt
-# tools/docs_to_wiki.py die Wiki-Seiten neu und lädt sie ins GitHub-Wiki hoch.
+# tools/build_docs.sh die Wiki-Seiten und das PDF neu, prüft alle Links und lädt beides ins
+# GitHub-Wiki hoch. Danach wird geprüft, dass der PDF-Link im Wiki ein PDF liefert.
+# Das PDF liegt nicht im Repository, nur im Wiki. Dieselbe Erzeugung läuft bei jedem Pull Request
+# im CI-Job "Dokumentation" (ci.yml), damit Fehler vor dem Zusammenführen auffallen.
 # Das Wiki ist damit immer eine Kopie von docs/; Änderungen direkt im Wiki werden überschrieben.
 #
 # Voraussetzung (einmalig von Hand): Im Repository unter "Wiki" eine erste Seite anlegen.
@@ -15,6 +18,9 @@ on:
     paths:
       - "docs/**"
       - "tools/docs_to_wiki.py"
+      - "tools/build_pdf.py"
+      - "tools/check_wiki.py"
+      - "tools/build_docs.sh"
       - ".github/workflows/wiki.yml"
   workflow_dispatch:
 
@@ -32,8 +38,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wiki-Seiten erzeugen
-        run: python3 tools/docs_to_wiki.py "$RUNNER_TEMP/wiki-neu"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Werkzeuge für das PDF installieren
+        run: |
+          pip install markdown playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-dejavu-core
+
+      - name: Wiki-Seiten und PDF erzeugen, Links prüfen
+        run: tools/build_docs.sh "$RUNNER_TEMP/wiki-neu"
         env:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
           REPO_BRANCH: ${{ github.ref_name }}
@@ -63,3 +79,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Wiki aus docs/ aktualisiert (${GITHUB_SHA::7})"
           git push
+
+      - name: PDF-Download im Wiki prüfen
+        run: |
+          # der Link in Startseite und Seitenleiste muss ein echtes PDF liefern
+          url="${{ github.server_url }}/${{ github.repository }}/wiki/Cookie-Curator-Dokumentation.pdf"
+          for i in 1 2 3 4 5 6; do
+            if curl -fsSL "$url" -o "$RUNNER_TEMP/check.pdf" && [ "$(head -c 4 "$RUNNER_TEMP/check.pdf")" = "%PDF" ]; then
+              echo "PDF im Wiki erreichbar: $url"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$url liefert kein PDF"
+          exit 1

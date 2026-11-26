@@ -269,6 +269,35 @@ Seite selbst lesbar, und vor deren Skripten wird gelöscht.
 
 ---
 
+### E-19 Eigene Übersetzungen statt `browser.i18n`
+
+**Entscheidung:** Texte in `locales/<code>.js`, übersetzt mit `I18N.t()` aus `lib/i18n.js`; die Wahl
+liegt in `cc_lang`. Firefox' `_locales/` nur für die Beschreibung im Add-on-Manager.
+
+**Alternative:** `browser.i18n.getMessage()` mit `_locales/<code>/messages.json`.
+
+**Begründung:** `browser.i18n` folgt immer der Sprache von Firefox; eine Erweiterung kann sie nicht
+umschalten. Gewünscht ist aber ein Knopf, mit dem man die Sprache unabhängig vom Browser wählt, und
+Deutsch als Standard auch in einem englischen Firefox. Ausserdem braucht die Hilfe Text mit
+Auszeichnung (fett, Code, Tabellen), was in `messages.json` nur als HTML-Zeichenkette ginge – die
+Oberfläche fügt aber grundsätzlich kein HTML ein (7.1). Eigene JS-Dateien erlauben Funktionen als
+Werte (Hilfe) und Mehrzahlformen über `Intl.PluralRules`.
+
+**Folgen:** Eine neue Sprache braucht eine Datei und eine Zeile in `LANGUAGES` (10.4). Ein Test
+prüft, dass jede Sprachdatei genau die Schlüssel von `en.js` hat.
+
+---
+
+### E-20 Sprache nicht in der Konfiguration
+
+**Entscheidung:** `cc_lang` ist ein eigener Schlüssel, nicht Teil von `cc_config`.
+
+**Begründung:** Jede Änderung an `cc_config` landet im Verlauf (E-16) und im Export. Ein
+Sprachwechsel ist eine Anzeige-Vorliebe wie die Spaltenbreiten (2.9): Er soll weder mit ↶
+rückgängig gemacht werden noch beim Import die Sprache eines anderen Geräts übernehmen.
+
+---
+
 ## Lehren aus Fehlern
 
 | Symptom (Benutzer) | Ursache | Lehre |

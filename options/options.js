@@ -1,6 +1,7 @@
 "use strict";
 (function () {
   const { el, select, confirmButton, toast } = UI;
+  const T = I18N.t;
   const view = document.getElementById("view");
   let cfg = null;
   let pendingSaves = [];   // JSON eigener, noch nicht gemeldeter Speicherungen
@@ -107,10 +108,10 @@
       const configured = sc && !CC.isSiteConfigEmpty(sc);
       const go = () => { location.hash = "site/" + encodeURIComponent(r.site); };
       tbody.append(el("tr", {},
-        el("td", { class: "site", onclick: go }, r.site, configured ? el("span", { class: "badge configured", style: "margin-left:6px" }, "konf.") : null),
-        el("td", { title: open.has(r.site) ? "Tab offen" : "" }, open.has(r.site) ? el("span", { class: "dot" }) : ""),
+        el("td", { class: "site", onclick: go }, r.site, configured ? el("span", { class: "badge configured", style: "margin-left:6px" }, T("sites.configuredShort")) : null),
+        el("td", { title: open.has(r.site) ? T("sites.colOpen") : "" }, open.has(r.site) ? el("span", { class: "dot" }) : ""),
         el("td", { class: "num" }, String(r.total)),
-        el("td", { class: "num split", title: `${r.keep} behalten · ${r.delete} löschen · ${r.block} blockiert` },
+        el("td", { class: "num split", title: T("sites.split", { keep: r.keep, del: r.delete, block: r.block }) },
           el("span", { class: "n-keep" }, String(r.keep)), el("span", { class: "sep" }, "·"),
           el("span", { class: r.delete ? "n-del" : "muted" }, String(r.delete)), el("span", { class: "sep" }, "·"),
           el("span", { class: r.block ? "n-block" : "muted" }, String(r.block))),
@@ -120,29 +121,29 @@
           r.tracking ? el("span", { class: "badge c-tracking" }, "T " + r.tracking) : null, " ",
           r.tp ? el("span", { class: "badge c-3p" }, "3P " + r.tp) : null),
         el("td", { class: "dim" }, sc && sc.defaultAction !== "inherit" ? CC.ACTION_LABEL[sc.defaultAction] : "↳ " + CC.ACTION_LABEL[g.defaultAction]),
-        el("td", { class: "dim" }, CC.effectiveTabClose(cfg, r.site) ? "an" : "aus", sc && sc.tabClose !== "inherit" ? "" : " ↳"),
+        el("td", { class: "dim" }, CC.effectiveTabClose(cfg, r.site) ? T("sites.on") : T("sites.off"), sc && sc.tabClose !== "inherit" ? "" : " ↳"),
         el("td", { class: "num" }, sc && sc.rules.length ? String(sc.rules.length) : ""),
         el("td", { class: "dim", title: CC.STORAGE_TYPES.map(t => CC.STORAGE_LABEL[t] + ": " + CC.MODE_LABEL[CC.effectiveStorageMode(cfg, r.site, t)]).join("\n") }, storageShort(r.site)),
         el("td", { class: "note", title: sc ? sc.note : "" }, sc ? sc.note : ""),
         el("td", { class: "actions" },
-          el("button", { class: "btn small", onclick: go }, "Bearbeiten"),
+          el("button", { class: "btn small", onclick: go }, T("sites.edit")),
           UI.purgeButton(r.site, () => renderSites(), { cls: "small" }),
           r.delete + r.block ? el("button", {
-            class: "btn small", title: "Cookies mit Aktion Löschen/Blockieren jetzt entfernen",
-            onclick: async () => { const x = await browser.runtime.sendMessage({ cmd: "cleanSite", site: r.site }); toast(`${x.length} gelöscht`); renderSites(); }
-          }, "Bereinigen") : null)
+            class: "btn small", title: T("sites.cleanTitle"),
+            onclick: async () => { const x = await browser.runtime.sendMessage({ cmd: "cleanSite", site: r.site }); toast(T("sites.deleted", { n: x.length })); renderSites(); }
+          }, T("sites.clean")) : null)
       ));
     }
-    if (!list.length) tbody.append(el("tr", {}, el("td", { colspan: 13, class: "empty" }, "Keine Seiten gefunden.")));
+    if (!list.length) tbody.append(el("tr", {}, el("td", { colspan: 13, class: "empty" }, T("sites.none"))));
 
     const addInput = el("input", { placeholder: "domain.ch", class: "mono", style: "width:160px" });
     const previewBox = el("div");
-    const modes = [["all", "Alle"], ["configured", "Konfiguriert"], ["unconfigured", "Unkonfiguriert"], ["open", "Offene Tabs"], ["pending", "Mit Löschkandidaten"]];
+    const modes = [["all", T("sites.modeAll")], ["configured", T("sites.modeConfigured")], ["unconfigured", T("sites.modeUnconfigured")], ["open", T("sites.modeOpen")], ["pending", T("sites.modePending")]];
 
     view.textContent = "";
     view.append(
-      pageHead("Seiten",
-        el("span", { class: "dim" }, `${all.length} Cookies auf ${rows.size} Seiten`),
+      pageHead(T("sites.title"),
+        el("span", { class: "dim" }, T("sites.count", { cookies: all.length, sites: rows.size })),
         addInput,
         el("button", {
           class: "btn", onclick: () => {
@@ -150,34 +151,34 @@
             if (!v) return;
             CC.getSite(cfg, v, true); location.hash = "site/" + encodeURIComponent(v);
           }
-        }, "Seite konfigurieren")),
+        }, T("sites.configure"))),
       el("div", { class: "card" },
         el("div", { class: "toolbar" },
-          el("input", { type: "search", placeholder: "Seite filtern …", value: state.sitesFilter, oninput: e => { state.sitesFilter = e.target.value; renderSitesDebounced(); } }),
+          el("input", { type: "search", placeholder: T("sites.filter"), value: state.sitesFilter, oninput: e => { state.sitesFilter = e.target.value; renderSitesDebounced(); } }),
           el("div", { class: "chips" }, modes.map(([v, l]) => el("button", { class: "chip" + (state.sitesMode === v ? " on" : ""), onclick: () => { state.sitesMode = v; renderSites(); } }, l))),
           el("span", { class: "spacer" }),
           el("button", {
             class: "btn", onclick: async () => {
               const x = await browser.runtime.sendMessage({ cmd: "cleanAll", dryRun: true, skipOpen: g.skipOpenSites });
               previewBox.textContent = "";
-              previewBox.append(previewTable(x, "Vorschau: diese Cookies würden gelöscht" + (g.skipOpenSites ? " (Seiten mit offenen Tabs ausgenommen)" : "")));
+              previewBox.append(previewTable(x, T("sites.previewTitle") + (g.skipOpenSites ? T("sites.previewSkip") : "")));
             }
-          }, "Alles bereinigen – Vorschau"),
-          confirmButton("Alles bereinigen", "Wirklich ausführen?", async () => {
+          }, T("sites.preview")),
+          confirmButton(T("sites.cleanAll"), T("sites.cleanAllConfirm"), async () => {
             const x = await browser.runtime.sendMessage({ cmd: "cleanAll", skipOpen: g.skipOpenSites });
-            toast(`${x.length} Cookie(s) gelöscht`);
+            toast(T("sites.cleanedCookies", { n: x.length }));
             renderSites();
           }, "primary")),
         el("div", { class: "table-scroll cookies-scroll" },
           el("table", { class: "grid overview" },
             el("thead", {}, el("tr", {},
-              th("site", "Seite"), el("th", { title: "Tab offen" }, "●"), th("total", "Cookies"),
-              el("th", { class: "num split-head", title: "Behalten · Löschen · Blockiert – zum Sortieren auf einen der drei Begriffe klicken" },
-                ...[["keep", "Beh."], ["delete", "Lösch."], ["block", "Block"]].flatMap(([k, l], i) => [i ? el("span", { class: "sep" }, "·") : null,
+              th("site", T("sites.colSite")), el("th", { title: T("sites.colOpen") }, "●"), th("total", T("sites.colCookies")),
+              el("th", { class: "num split-head", title: T("sites.colSplitTitle") },
+                ...[["keep", T("sites.colKeep")], ["delete", T("sites.colDelete")], ["block", T("sites.colBlock")]].flatMap(([k, l], i) => [i ? el("span", { class: "sep" }, "·") : null,
                   el("span", { class: "sortable" + (key === k ? " sorted" : ""), onclick: () => { state.sitesSort = { key: k, dir: key === k ? -dir : -1 }; renderSites(); } }, l, key === k ? (dir > 0 ? "▴" : "▾") : "")])),
-              el("th", { title: "Cookie-Kategorien: C = Consent, L = Login/Session, T = Tracking, 3P = partitionierte Drittanbieter" }, "Cookie-Kategorien"),
-              el("th", { title: "Standard für übrige Cookies · ↳ = geerbt" }, "Cookie-Standard"), el("th", {}, "Tab-Schliessen"),
-              el("th", { title: "Cookie-Regeln der Seite" }, "Cookie-Regeln"), el("th", { title: "Website-Daten: L=localStorage S=sessionStorage I=IndexedDB A=Cache Storage (Cache API) W=Service Worker H=HTTP-Cache · ✕ löschen, ◐ selektiv" }, "Website-Daten"), el("th", {}, "Notiz"), el("th", {}, ""))),
+              el("th", { title: T("sites.colCatTitle") }, T("sites.colCat")),
+              el("th", { title: T("sites.colDefaultTitle") }, T("sites.colDefault")), el("th", {}, T("sites.colTabClose")),
+              el("th", { title: T("sites.colRulesTitle") }, T("sites.colRules")), el("th", { title: T("sites.colDataTitle") }, T("sites.colData")), el("th", {}, T("sites.colNote")), el("th", {}, ""))),
             tbody))),
       previewBox
     );
@@ -206,11 +207,11 @@
       el("h3", {}, `${title} – ${list.length}`),
       el("div", { class: "table-scroll preview-list" },
         el("table", { class: "grid" },
-          el("thead", {}, el("tr", {}, el("th", {}, "Seite"), el("th", {}, "Name"), el("th", {}, "Domain"), el("th", {}, "Pfad"), el("th", {}, "Begründung"))),
+          el("thead", {}, el("tr", {}, el("th", {}, T("sites.colSite")), el("th", {}, T("rules.name")), el("th", {}, T("rules.domain")), el("th", {}, T("rules.path")), el("th", {}, T("ck.reason")))),
           el("tbody", {}, list.length ? list.map(x => el("tr", {},
-            el("td", { class: "mono" }, x.site), el("td", { class: "mono" }, x.name, x.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, "Website-Daten") : null), el("td", { class: "mono dim", title: x.domain }, x.domain.length > 60 ? x.domain.slice(0, 60) + "…" : x.domain),
+            el("td", { class: "mono" }, x.site), el("td", { class: "mono" }, x.name, x.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, T("sites.siteData")) : null), el("td", { class: "mono dim", title: x.domain }, x.domain.length > 60 ? x.domain.slice(0, 60) + "…" : x.domain),
             el("td", { class: "mono dim" }, x.path), el("td", { class: "reason dim" }, x.reason)))
-            : el("tr", {}, el("td", { colspan: 5, class: "empty" }, "Nichts zu löschen."))))));
+            : el("tr", {}, el("td", { colspan: 5, class: "empty" }, T("sites.nothing")))))));
   }
 
   /* ================================================================== */
@@ -220,12 +221,12 @@
   async function renderSite(site) {
     const box = el("div");
     view.append(
-      pageHead(el("span", {}, "Seite ", el("code", {}, site)),
-        el("a", { href: "https://" + site, target: "_blank", rel: "noopener", class: "btn" }, "Seite öffnen ↗"),
-        confirmButton("Seiten-Konfiguration entfernen", "Wirklich entfernen?", async () => {
-          delete cfg.sites[site]; await save(); toast("Konfiguration entfernt"); location.hash = "sites";
+      pageHead(el("span", {}, T("siteView.site"), el("code", {}, site)),
+        el("a", { href: "https://" + site, target: "_blank", rel: "noopener", class: "btn" }, T("siteView.open")),
+        confirmButton(T("siteView.remove"), T("siteView.removeConfirm"), async () => {
+          delete cfg.sites[site]; await save(); toast(T("siteView.removed")); location.hash = "sites";
         }, "danger"),
-        el("a", { href: "#sites", class: "btn" }, "← Übersicht")),
+        el("a", { href: "#sites", class: "btn" }, T("siteView.back"))),
       box);
     const ed = new UI.SiteEditor(box, { site, compact: false });
     ed.onPurged = () => { location.hash = "sites"; };
@@ -245,8 +246,7 @@
       wrap.textContent = "";
       wrap.append(
         el("p", { class: "hint", style: "margin:0 0 8px" },
-          "Gelten für alle Seiten, nach den Cookie-Regeln der Seite und vor den Kategorien. Treffer = Anzahl aktueller Cookies (alle Seiten). ",
-          "Beispiel: ", el("code", {}, "glob _ga* → Blockieren"), " entfernt Google Analytics überall sofort."),
+          T("grules.hint"), T("grules.example"), el("code", {}, T("grules.exampleRule")), T("grules.exampleText")),
         UI.ruleTable(cfg.globalRules, {
           containers, cookies: all,
           onChange: () => save(),
@@ -255,7 +255,7 @@
     };
     draw();
     view.textContent = "";
-    view.append(pageHead("Globale Cookie-Regeln"), wrap);
+    view.append(pageHead(T("grules.title")), wrap);
   }
 
   /* ================================================================== */
@@ -272,19 +272,19 @@
       grid.append(el("div", { class: "card" },
         el("h3", {}, el("span", { class: "badge c-" + cat }, CC.CATEGORY_LABEL[cat]),
           el("span", { class: "spacer" }),
-          "Globale Aktion: ",
-          select([["keep", "Behalten"], ["delete", "Löschen"], ["block", "Blockieren"], ["none", "Keine"]], g.categories[cat],
-            v => { g.categories[cat] = v; save(); toast("Gespeichert"); })),
+          T("cat.globalAction"),
+          select(["keep", "delete", "block", "none"].map(a => [a, CC.ACTION_LABEL[a]]), g.categories[cat],
+            v => { g.categories[cat] = v; save(); toast(T("cat.saved")); })),
         areas[cat],
-        el("p", { class: "hint" }, "Ein Muster pro Zeile, Glob (", el("code", {}, "*"), ", ", el("code", {}, "?"), ") oder ", el("code", {}, "/regex/i"), ". Geprüft wird nur der Cookie-Name.")));
+        el("p", { class: "hint" }, T("cat.hint1"), el("code", {}, "*"), ", ", el("code", {}, "?"), T("cat.hint2"), el("code", {}, "/regex/i"), T("cat.hint3"))));
     }
 
-    const testIn = el("input", { class: "mono", placeholder: "Cookie-Name testen, z. B. _ga_XYZ", style: "width:280px" });
+    const testIn = el("input", { class: "mono", placeholder: T("cat.testPlaceholder"), style: "width:280px" });
     const testOut = el("span", { class: "dim" });
     testIn.addEventListener("input", () => {
       const tmp = Object.assign({}, cfg, { categoryPatterns: readAreas() });
       const r = CC.classify({ name: testIn.value }, tmp);
-      testOut.textContent = testIn.value ? (r.category ? `→ ${CC.CATEGORY_LABEL[r.category]} (Muster ${r.pattern})` : "→ keine Kategorie") : "";
+      testOut.textContent = testIn.value ? (r.category ? T("cat.testResult", { category: CC.CATEGORY_LABEL[r.category], pattern: r.pattern }) : T("cat.testNone")) : "";
     });
     const readAreas = () => {
       const o = {};
@@ -293,22 +293,21 @@
     };
 
     view.append(
-      pageHead("Cookie-Kategorien",
+      pageHead(T("cat.title"),
         testIn, testOut,
-        confirmButton("Muster zurücksetzen", "Standardmuster laden?", async () => {
-          cfg.categoryPatterns = JSON.parse(JSON.stringify(CC.DEFAULT_PATTERNS)); await save(); render(); toast("Standardmuster geladen");
+        confirmButton(T("cat.reset"), T("cat.resetConfirm"), async () => {
+          cfg.categoryPatterns = JSON.parse(JSON.stringify(CC.DEFAULT_PATTERNS)); await save(); render(); toast(T("cat.resetDone"));
         }),
         el("button", {
           class: "btn primary", onclick: async () => {
             const p = readAreas();
             const bad = Object.values(p).flat().filter(x => /^\/.*\/[a-z]*$/.test(x) && CC.validateRegex(x));
-            if (bad.length) { toast("Ungültiger RegExp: " + bad[0], "err"); return; }
-            cfg.categoryPatterns = p; await save(); toast("Muster gespeichert");
+            if (bad.length) { toast(T("cat.invalid", { pattern: bad[0] }), "err"); return; }
+            cfg.categoryPatterns = p; await save(); toast(T("cat.savedPatterns"));
           }
-        }, "Muster speichern")),
+        }, T("cat.save"))),
       el("p", { class: "hint", style: "margin:0 0 10px" },
-        "Prüfreihenfolge: Consent → Tracking → Login/Session. Die erste passende Kategorie zählt. ",
-        "Seiten können die Aktion pro Kategorie übersteuern. Zeilen mit # sind Kommentare."),
+        T("cat.order")),
       grid);
   }
 
@@ -318,12 +317,12 @@
 
   function renderSettings() {
     const s = cfg.settings;
-    const set = (k, v) => { s[k] = v; save(); toast("Gespeichert"); };
+    const set = (k, v) => { s[k] = v; save(); toast(T("cat.saved")); };
     const row = (label, ctrl, desc) => [el("label", {}, label), el("div", {}, ctrl, desc ? el("div", { class: "desc" }, desc) : null)];
     const check = (k) => el("input", { type: "checkbox", checked: s[k], onchange: e => set(k, e.target.checked) });
     const num = (k, min, max) => el("input", { type: "number", min, max, value: s[k], onchange: e => set(k, Math.max(min, Math.min(max, Number(e.target.value) || 0))) });
 
-    const suffix = el("textarea", { rows: 4, spellcheck: "false", placeholder: "z. B.\nmy-hosting.example\nco.ch" });
+    const suffix = el("textarea", { rows: 4, spellcheck: "false", placeholder: T("set.suffixPlaceholder") });
     suffix.value = s.extraSuffixes || "";
     suffix.addEventListener("change", () => set("extraSuffixes", suffix.value));
 
@@ -332,52 +331,41 @@
       el("div", { class: "form-grid" }, ...rows));
 
     view.append(
-      pageHead("Einstellungen",
-        el("span", { class: "hint", style: "margin:0" }, "Jede Änderung ist mit ↶ / ↷ oben rechts (oder Strg+Z / Strg+Y) rückgängig zu machen."),
-        confirmButton("Verlauf leeren", "Verlauf wirklich leeren?", async () => { await browser.runtime.sendMessage({ cmd: "historyClear" }); toast("Verlauf geleert"); })),
+      pageHead(T("set.title"),
+        el("span", { class: "hint", style: "margin:0" }, T("set.undoHint")),
+        confirmButton(T("set.clearHistory"), T("set.clearHistoryConfirm"), async () => { await browser.runtime.sendMessage({ cmd: "historyClear" }); toast(T("set.historyCleared")); })),
 
-      group("Bereinigung", "Wann bereinigt wird. Gilt für Cookies und Website-Daten gleichermassen.",
-        row("Bereinigen bei Tab-Schliessen", check("cleanOnTabClose"),
-          "Wenn der letzte Tab einer Seite geschlossen oder wegnavigiert wird. Pro Seite übersteuerbar."),
-        row("Verzögerung (Sekunden)", num("tabCloseDelaySec", 0, 3600),
-          "Wartezeit nach dem Schliessen. Wird die Seite in der Zeit wieder geöffnet, entfällt die Bereinigung."),
-        row("Bereinigen beim Browserstart", check("cleanOnStartup"), "Läuft ca. 4 s nach dem Start über alle Seiten."),
-        row("Intervall-Bereinigung (Minuten)", num("periodicMinutes", 0, 10080), "0 = aus. Bereinigt alle Seiten periodisch."),
-        row("Seiten mit offenen Tabs auslassen", check("skipOpenSites"),
-          "Gilt für Start, Intervall und „Alles bereinigen“. Verhindert, dass aktive Sitzungen unterbrochen werden.")),
+      group(T("set.cleanup"), T("set.cleanupIntro"),
+        row(T("set.tabClose"), check("cleanOnTabClose"), T("set.tabCloseDesc")),
+        row(T("set.delay"), num("tabCloseDelaySec", 0, 3600), T("set.delayDesc")),
+        row(T("set.startup"), check("cleanOnStartup"), T("set.startupDesc")),
+        row(T("set.interval"), num("periodicMinutes", 0, 10080), T("set.intervalDesc")),
+        row(T("set.skipOpen"), check("skipOpenSites"), T("set.skipOpenDesc"))),
 
-      group("Cookies", el("span", {}, "Globale Vorgaben für Seiten ohne eigene Einstellung. Weitere Cookie-Einstellungen: ",
-          el("a", { href: "#rules" }, "Cookie-Regeln"), " · ", el("a", { href: "#categories" }, "Cookie-Kategorien"), " · ", el("a", { href: "#archive" }, "Cookie-Archiv"), "."),
-        row("Standard für übrige Cookies", select([["keep", "Behalten"], ["delete", "Löschen"]], s.defaultAction, v => set("defaultAction", v)),
-          "Für Cookies ohne passende Cookie-Regel oder Kategorie. „Löschen“ = Whitelist-Betrieb: nur explizit Erlaubtes bleibt."),
-        row("Blockieren sofort durchsetzen", check("enforceBlock"),
-          "Cookies mit Aktion „Blockieren“ werden direkt nach dem Setzen gelöscht (cookies.onChanged).")),
+      group(T("set.cookies"), el("span", {}, T("set.cookiesIntro"),
+          el("a", { href: "#rules" }, T("nav.rules")), " · ", el("a", { href: "#categories" }, T("nav.categories")), " · ", el("a", { href: "#archive" }, T("nav.archive")), "."),
+        row(T("set.default"), select([["keep", CC.ACTION_LABEL.keep], ["delete", CC.ACTION_LABEL.delete]], s.defaultAction, v => set("defaultAction", v)), T("set.defaultDesc")),
+        row(T("set.enforce"), check("enforceBlock"), T("set.enforceDesc"))),
 
-      group("Website-Daten", "Globale Vorgaben für Seiten ohne eigene Einstellung. „Selektiv“ (nach Eintragsregeln) gibt es nur pro Seite.",
+      group(T("set.data"), T("set.dataIntro"),
         ...CC.STORAGE_TYPES.map(t => row(CC.STORAGE_LABEL[t],
           select(CC.STORAGE_MODES[t].filter(m => m !== "selective").map(m => [m, CC.MODE_LABEL[m]]), (s.storage || {})[t] || "keep",
-            v => { s.storage = Object.assign({}, s.storage, { [t]: v }); save(); toast("Gespeichert"); }),
+            v => { s.storage = Object.assign({}, s.storage, { [t]: v }); save(); toast(T("cat.saved")); }),
           CC.STORAGE_HELP[t]))),
 
-      group("Cookie-Archiv", null,
-        row("Beim Browserstart zurücksetzen", check("restoreOnStartup"),
-          "Archivierte Versionen mit ⟲ Autostart werden ca. 4 s nach dem Start gesetzt – nach der Start-Bereinigung."),
-        row("Abgelaufene verlängern (Tage)", num("restoreExtendDays", 0, 3650),
-          "Ist die archivierte Version abgelaufen, bekommt sie beim Zurückholen diese Laufzeit. 0 = als Sitzungscookie setzen."),
-        row("Versionen pro Cookie", num("archiveMaxVersions", 1, 100),
-          "Ältere Versionen werden beim Archivieren entfernt. Versionen mit Autostart bleiben immer erhalten.")),
+      group(T("set.archive"), null,
+        row(T("set.restore"), check("restoreOnStartup"), T("set.restoreDesc")),
+        row(T("set.extend"), num("restoreExtendDays", 0, 3650), T("set.extendDesc")),
+        row(T("set.versions"), num("archiveMaxVersions", 1, 100), T("set.versionsDesc"))),
 
-      group("Anzeige & Protokoll", null,
-        row("Badge am Symbol", select([["pending", "Anzahl Cookie-Löschkandidaten"], ["total", "Anzahl Cookies"], ["off", "Aus"]], s.badge, v => set("badge", v)),
-          "Grün = nichts zu löschen, orange = Löschkandidaten vorhanden."),
-        row("Protokoll aktiv", check("logEnabled")),
-        row("Protokoll max. Einträge", num("logMax", 100, 100000))),
+      group(T("set.display"), null,
+        row(T("set.badge"), select([["pending", T("set.badgePending")], ["total", T("set.badgeTotal")], ["off", T("set.badgeOff")]], s.badge, v => set("badge", v)), T("set.badgeDesc")),
+        row(T("set.logEnabled"), check("logEnabled")),
+        row(T("set.logMax"), num("logMax", 100, 100000))),
 
-      group("Erweitert", null,
-        row("Spaltenbreiten der Tabellen", el("button", { class: "btn", onclick: () => { CCTables.resetAll(); toast("Spaltenbreiten zurückgesetzt"); } }, "Alle zurücksetzen"),
-          "Spalten lassen sich in jeder Tabelle am rechten Rand des Spaltenkopfs breiter oder schmaler ziehen; Doppelklick dort setzt eine Tabelle zurück."),
-        row("Zusätzliche Public Suffixes", suffix,
-          "Die Seitenzuordnung nutzt eine kompakte Suffix-Liste (kein vollständiger PSL). Eintragen, wenn Subdomains als eigene Seiten gelten sollen; „github.io“ ist bereits enthalten.")));
+      group(T("set.advanced"), null,
+        row(T("set.columns"), el("button", { class: "btn", onclick: () => { CCTables.resetAll(); toast(T("set.columnsReset")); } }, T("set.resetAll")), T("set.columnsDesc")),
+        row(T("set.suffixes"), suffix, T("set.suffixesDesc"))));
   }
 
   /* ================================================================== */
@@ -401,29 +389,26 @@
     for (const a of [...sel]) if (!archive.some(e => e.aid === a)) sel.delete(a);
     const auto = archive.filter(e => e.autoRestore).length;
     const redraw = () => renderArchive();
-    const modes = [["all", "Alle"], ["auto", "⟲ Autostart"], ["missing", "Aktuell fehlend"], ["differs", "Abweichend"]];
+    const modes = [["all", T("arch.modeAll")], ["auto", T("arch.modeAuto")], ["missing", T("arch.modeMissing")], ["differs", T("arch.modeDiffers")]];
     const keepFocus = document.activeElement && document.activeElement.id === "arch-filter";
 
     view.textContent = "";
     view.append(
-      pageHead("Cookie-Archiv",
-        el("span", { class: "dim" }, `${archive.length} Versionen von ${new Set(archive.map(e => e.key)).size} Cookies · ${auto} mit Autostart`),
+      pageHead(T("arch.title"),
+        el("span", { class: "dim" }, T("arch.summary", { versions: archive.length, cookies: new Set(archive.map(e => e.key)).size, auto })),
         el("button", {
-          class: "btn", disabled: !auto, title: "Alle Autostart-Einträge jetzt anwenden (wie beim Browserstart)",
-          onclick: async () => { const r = await browser.runtime.sendMessage({ cmd: "restoreAutostart" }); toast(`${r.ok.length} zurückgesetzt` + (r.failed.length ? `, ${r.failed.length} fehlgeschlagen` : ""), r.failed.length ? "err" : ""); }
-        }, "Autostart jetzt ausführen"),
-        el("button", { class: "btn", onclick: () => download(`cookie-curator-archiv-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), archive }, null, 2)) }, "Archiv exportieren")),
+          class: "btn", disabled: !auto, title: T("arch.runTitle"),
+          onclick: async () => { const r = await browser.runtime.sendMessage({ cmd: "restoreAutostart" }); toast(T("arch.restored", { n: r.ok.length }) + (r.failed.length ? T("arch.failed", { n: r.failed.length }) : ""), r.failed.length ? "err" : ""); }
+        }, T("arch.run")),
+        el("button", { class: "btn", onclick: () => download(`${T("arch.fileName")}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), archive }, null, 2)) }, T("arch.export"))),
       el("div", { class: "card" },
         el("div", { class: "toolbar" },
-          el("input", { id: "arch-filter", type: "search", placeholder: "Filter: Seite, Name, Wert, Notiz …", value: state.archFilter,
+          el("input", { id: "arch-filter", type: "search", placeholder: T("arch.filter"), value: state.archFilter,
             oninput: e => { state.archFilter = e.target.value; clearTimeout(archTimer); archTimer = setTimeout(redraw, 200); } }),
           el("div", { class: "chips" }, modes.map(([v, l]) => el("button", { class: "chip" + (state.archMode === v ? " on" : ""), onclick: () => { state.archMode = v; redraw(); } }, l)))),
         UI.archiveBulkBar(sel, redraw),
         UI.archiveTable(list, { currentById, containers, showSite: true, selected: sel, onSelect: redraw }),
-        el("p", { class: "hint" },
-          "Archivieren geht im Popup oder im Seiten-Editor: Cookies auswählen → Archivieren, oder in der Detailansicht eines Cookies. ",
-          "⟲ Autostart: Diese Version wird bei jedem Browserstart gesetzt (überschreibt den aktuellen Wert). ",
-          "Ablauf: abgelaufene Versionen werden beim Zurückholen um die eingestellte Anzahl Tage verlängert.")));
+        el("p", { class: "hint" }, T("arch.hint"))));
     if (keepFocus) { const i = document.getElementById("arch-filter"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
   }
 
@@ -438,38 +423,38 @@
     const rows = log.slice().reverse().filter(e =>
       (state.logTrigger === "all" || e.trigger === state.logTrigger) &&
       (!f || e.site.includes(f) || e.name.toLowerCase().includes(f) || (e.reason || "").toLowerCase().includes(f)));
-    const trig = { "tab-close": "Tab zu", startup: "Start", interval: "Intervall", manual: "Manuell", block: "Block", restore: "Zurückgeholt", "startup-restore": "Start-Reset", "page-load": "Seitenaufruf" };
+    const trig = { "tab-close": T("log.tabClose"), startup: T("log.startup"), interval: T("log.interval"), manual: T("log.manual"), block: T("log.block"), restore: T("log.restore"), "startup-restore": T("log.startupRestore"), "page-load": T("log.pageLoad") };
 
     const toCsv = () => {
       const esc = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-      const lines = [["Zeit", "Trigger", "Seite", "Name", "Domain", "Pfad", "Container", "Partitioniert", "Begründung"].map(esc).join(";")];
+      const lines = [[T("log.time"), T("log.trigger"), T("sites.colSite"), T("rules.name"), T("rules.domain"), T("rules.path"), T("rules.container"), T("log.partitioned"), T("ck.reason")].map(esc).join(";")];
       for (const e of rows) lines.push([new Date(e.t).toISOString(), e.trigger, e.site, e.name, e.domain, e.path, e.storeId, e.partitioned, e.reason].map(esc).join(";"));
       download("cookie-curator-log.csv", "﻿" + lines.join("\r\n"), "text/csv");
     };
 
     view.textContent = "";
     view.append(
-      pageHead("Protokoll", el("span", { class: "dim" }, `${log.length} Einträge`),
-        el("button", { class: "btn", onclick: toCsv }, "CSV exportieren"),
-        confirmButton("Leeren", "Wirklich leeren?", async () => { await browser.runtime.sendMessage({ cmd: "clearLog" }); render(); }, "danger")),
+      pageHead(T("log.title"), el("span", { class: "dim" }, T("log.count", { n: log.length })),
+        el("button", { class: "btn", onclick: toCsv }, T("log.csv")),
+        confirmButton(T("log.clear"), T("log.clearConfirm"), async () => { await browser.runtime.sendMessage({ cmd: "clearLog" }); render(); }, "danger")),
       el("div", { class: "card" },
         el("div", { class: "toolbar" },
-          el("input", { type: "search", placeholder: "Filter …", value: state.logFilter, onchange: e => { state.logFilter = e.target.value; render(); } }),
-          el("div", { class: "chips" }, [["all", "Alle"], ...Object.entries(trig)].map(([v, l]) =>
+          el("input", { type: "search", placeholder: T("log.filter"), value: state.logFilter, onchange: e => { state.logFilter = e.target.value; render(); } }),
+          el("div", { class: "chips" }, [["all", T("sites.modeAll")], ...Object.entries(trig)].map(([v, l]) =>
             el("button", { class: "chip" + (state.logTrigger === v ? " on" : ""), onclick: () => { state.logTrigger = v; render(); } }, l)))),
         el("div", { class: "table-scroll cookies-scroll" },
           el("table", { class: "grid" },
-            el("thead", {}, el("tr", {}, ["Zeit", "Trigger", "Seite", "Name", "Domain", "Pfad", "Container", "Begründung"].map(h => el("th", {}, h)))),
+            el("thead", {}, el("tr", {}, [T("log.time"), T("log.trigger"), T("sites.colSite"), T("rules.name"), T("rules.domain"), T("rules.path"), T("rules.container"), T("ck.reason")].map(h => el("th", {}, h)))),
             el("tbody", {}, rows.length ? rows.slice(0, 2000).map(e => el("tr", {},
-              el("td", { class: "num" }, new Date(e.t).toLocaleString("de-CH")),
+              el("td", { class: "num" }, new Date(e.t).toLocaleString(T("fmt.locale"))),
               el("td", {}, trig[e.trigger] || e.trigger),
               el("td", { class: "mono" }, el("a", { href: "#site/" + encodeURIComponent(e.site) }, e.site)),
-              el("td", { class: "mono" }, e.name, e.partitioned ? el("span", { class: "badge c-3p" }, "Part") : null, e.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, "Website-Daten") : null),
+              el("td", { class: "mono" }, e.name, e.partitioned ? el("span", { class: "badge c-3p" }, "Part") : null, e.kind === "storage" ? el("span", { class: "badge c-consent", style: "margin-left:4px" }, T("sites.siteData")) : null),
               el("td", { class: "mono dim" }, e.domain),
               el("td", { class: "mono dim" }, e.path),
               el("td", { class: "dim" }, containers[e.storeId] || e.storeId),
               el("td", { class: "reason dim", title: e.reason }, e.reason)))
-              : el("tr", {}, el("td", { colspan: 8, class: "empty" }, "Keine Einträge.")))))));
+              : el("tr", {}, el("td", { colspan: 8, class: "empty" }, T("log.none"))))))));
   }
 
   /* ================================================================== */
@@ -492,8 +477,8 @@
         const data = JSON.parse(await file.files[0].text());
         importedArchive = Array.isArray(data.archive) ? data.archive : [];
         if (data.config || data.settings || data.sites) imported = CC.normalizeConfig(data.config || data);
-        status.textContent = `Gelesen: ${imported ? Object.keys(imported.sites).length + " Seiten, " + imported.globalRules.length + " globale Regeln" : "keine Konfiguration"}, ${importedArchive.length} Archiv-Einträge.`;
-      } catch (e) { status.textContent = "Fehler: " + e.message; }
+        status.textContent = T("bk.read", { what: imported ? T("bk.readConfig", { sites: Object.keys(imported.sites).length, rules: imported.globalRules.length }) : T("bk.noConfig"), n: importedArchive.length });
+      } catch (e) { status.textContent = T("bk.error", { msg: e.message }); }
     });
     const importArchive = async () => {
       if (!importedArchive.length) return 0;
@@ -501,20 +486,20 @@
     };
 
     view.append(
-      pageHead("Import / Export"),
+      pageHead(T("bk.title")),
       el("div", { class: "card" },
-        el("h3", {}, "Export"),
-        el("p", { class: "hint" }, "Komplette Konfiguration (Einstellungen, Kategorien, globale Regeln, Seiten) und Cookie-Archiv als JSON. Achtung: das Archiv enthält Cookie-Werte, also u. U. Login-Sitzungen – Datei entsprechend schützen."),
+        el("h3", {}, T("bk.export")),
+        el("p", { class: "hint" }, T("bk.exportHint")),
         el("div", { class: "row-actions" },
-          el("button", { class: "btn primary", onclick: async () => download(`cookie-curator-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), config: cfg, archive: await CC.loadArchive() }, null, 2)) }, "JSON herunterladen (inkl. Archiv)"),
-          el("button", { class: "btn", onclick: async () => { const c = await CC.getAllCookies(); download("cookies-snapshot.json", JSON.stringify(c, null, 2)); } }, "Alle Cookies als JSON (Snapshot)"))),
+          el("button", { class: "btn primary", onclick: async () => download(`cookie-curator-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), config: cfg, archive: await CC.loadArchive() }, null, 2)) }, T("bk.download")),
+          el("button", { class: "btn", onclick: async () => { const c = await CC.getAllCookies(); download("cookies-snapshot.json", JSON.stringify(c, null, 2)); } }, T("bk.snapshot")))),
       el("div", { class: "card" },
-        el("h3", {}, "Import"),
+        el("h3", {}, T("bk.import")),
         file, status,
         el("div", { class: "row-actions" },
           el("button", {
             class: "btn", onclick: async () => {
-              if (!imported && !importedArchive.length) return toast("Zuerst Datei wählen", "err");
+              if (!imported && !importedArchive.length) return toast(T("bk.chooseFirst"), "err");
               if (imported) {
                 for (const [k, v] of Object.entries(imported.sites)) cfg.sites[k] = v;
                 const ids = new Set(cfg.globalRules.map(r => r.id));
@@ -522,21 +507,21 @@
                 await save();
               }
               const n = await importArchive();
-              toast(`Zusammengeführt (Seiten überschrieben, Regeln ergänzt, ${n} Archiv-Einträge ergänzt)`);
+              toast(T("bk.merged", { n }));
             }
-          }, "Zusammenführen"),
-          confirmButton("Ersetzen", "Alles ersetzen?", async () => {
-            if (!imported) return toast("Datei enthält keine Konfiguration", "err");
+          }, T("bk.merge")),
+          confirmButton(T("bk.replace"), T("bk.replaceConfirm"), async () => {
+            if (!imported) return toast(T("bk.noConfigInFile"), "err");
             cfg = imported; await save();
             if (importedArchive.length) { await CC.saveArchive([]); await importArchive(); }
-            toast("Konfiguration ersetzt" + (importedArchive.length ? " (Archiv ebenfalls ersetzt)" : ""));
+            toast(T("bk.replaced") + (importedArchive.length ? T("bk.replacedArchive") : ""));
           }, "danger"))),
       el("div", { class: "card" },
-        el("h3", {}, "Zurücksetzen"),
-        el("p", { class: "hint" }, "Setzt alle Einstellungen, Regeln und Seiten auf Werkszustand. Cookies und Archiv bleiben unberührt."),
+        el("h3", {}, T("bk.reset")),
+        el("p", { class: "hint" }, T("bk.resetHint")),
         el("div", { class: "row-actions" },
-          confirmButton("Auf Standard zurücksetzen", "Wirklich alles zurücksetzen?", async () => {
-            cfg = CC.defaultConfig(); await save(); toast("Zurückgesetzt");
+          confirmButton(T("bk.resetButton"), T("bk.resetConfirm"), async () => {
+            cfg = CC.defaultConfig(); await save(); toast(T("bk.resetDone"));
           }, "danger"))));
   }
 
@@ -545,10 +530,9 @@
   /* ================================================================== */
 
   function renderHelp() {
-    view.append(pageHead("Funktionsweise"), buildHelp());
+    view.append(pageHead(T("help.title")), buildHelp());
   }
 
-  document.getElementById("history-slot").append(UI.historyButtons());
   CCTables.observe(document.getElementById("view"));
 
   // Höhe der klebenden Navigationsleiste für die klebenden Tabellenköpfe
@@ -556,5 +540,11 @@
   const setHdr = () => document.documentElement.style.setProperty("--hdr", header.offsetHeight + "px");
   setHdr();
   if (window.ResizeObserver) new ResizeObserver(setHdr).observe(header); else window.addEventListener("resize", setHdr);
-  load().then(render);
+  I18N.init().then(() => {
+    I18N.apply();
+    I18N.onChange(() => location.reload());
+    document.getElementById("lang-slot").append(UI.languageButton());
+    document.getElementById("history-slot").append(UI.historyButtons());
+    return load();
+  }).then(render);
 })();

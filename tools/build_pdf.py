@@ -1,8 +1,11 @@
-"""Erzeugt docs/Cookie-Curator-Dokumentation.pdf aus den Markdown-Kapiteln in docs/.
+"""Erzeugt das PDF der Dokumentation aus den Markdown-Kapiteln in docs/.
 
     pip install markdown playwright && python -m playwright install chromium
     npm install -g @mermaid-js/mermaid-cli      (für die Diagramme; sonst wird npx verwendet)
-    python tools/build_pdf.py
+    python tools/build_pdf.py [AUSGABE.pdf]     (Standard: Cookie-Curator-Dokumentation.pdf im Hauptordner)
+
+Das PDF liegt nicht im Repository: .github/workflows/wiki.yml erzeugt es bei jeder Änderung an
+docs/ und legt es ins Wiki (Download über die Seitenleiste und die Startseite des Wikis).
 """
 import re, os, subprocess, base64, html, sys, json, shutil, tempfile, datetime
 from pathlib import Path
@@ -11,7 +14,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = str(ROOT / "docs")
-OUT = os.path.join(DOCS, "Cookie-Curator-Dokumentation.pdf")
+OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else str(ROOT / "Cookie-Curator-Dokumentation.pdf")
 W = tempfile.mkdtemp(prefix="cc-pdf-")
 VERSION = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))["version"]
 TODAY = datetime.date.today().strftime("%d.%m.%Y")
@@ -33,7 +36,12 @@ def mermaid(code):
     open(src, "w", encoding="utf-8").write(code)
     cfg = os.path.join(W, "mcfg.json")
     open(cfg, "w", encoding="utf-8").write('{"theme":"neutral","themeVariables":{"fontFamily":"DejaVu Sans","fontSize":"14px"},"flowchart":{"htmlLabels":false}}')
-    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q"], check=True)
+    # Chrome für die Diagramme ohne Sandbox: als root (Container) startet er sonst nicht, und auf
+    # Ubuntu ab 23.10 (GitHub-Runner) sperrt AppArmor die dafür nötigen User-Namespaces. Gerendert
+    # werden nur die eigenen Diagramme aus docs/, keine fremden Seiten.
+    pcfg = os.path.join(W, "pcfg.json")
+    open(pcfg, "w", encoding="utf-8").write('{"args":["--no-sandbox"]}')
+    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q", "-p", pcfg], check=True)
     svg = open(dst, "rb").read()
     return f'<div class="diagram"><img src="data:image/svg+xml;base64,{base64.b64encode(svg).decode()}"/></div>'
 

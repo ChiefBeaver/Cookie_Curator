@@ -12,19 +12,21 @@
   <header class="top">
     <div class="brand"><img src="../icons/icon.svg" alt=""><h1>Cookie Curator</h1></div>
     <nav id="nav">
-      <a href="#sites" data-route="sites">Seiten</a>
-      <a href="#rules" data-route="rules">Cookie-Regeln</a>
-      <a href="#categories" data-route="categories">Cookie-Kategorien</a>
-      <a href="#settings" data-route="settings">Einstellungen</a>
-      <a href="#archive" data-route="archive">Cookie-Archiv</a>
-      <a href="#log" data-route="log">Protokoll</a>
-      <a href="#backup" data-route="backup">Import / Export</a>
-      <a href="#help" data-route="help">Funktionsweise</a>
+      <a href="#sites" data-route="sites" data-i18n="nav.sites">Seiten</a>
+      <a href="#rules" data-route="rules" data-i18n="nav.rules">Cookie-Regeln</a>
+      <a href="#categories" data-route="categories" data-i18n="nav.categories">Cookie-Kategorien</a>
+      <a href="#settings" data-route="settings" data-i18n="nav.settings">Einstellungen</a>
+      <a href="#archive" data-route="archive" data-i18n="nav.archive">Cookie-Archiv</a>
+      <a href="#log" data-route="log" data-i18n="nav.log">Protokoll</a>
+      <a href="#backup" data-route="backup" data-i18n="nav.backup">Import / Export</a>
+      <a href="#help" data-route="help" data-i18n="nav.help">Funktionsweise</a>
     </nav>
     <span style="flex:1"></span>
+    <span id="lang-slot"></span>
     <span id="history-slot"></span>
   </header>
   <main id="view"></main>
+  <script src="../lib/i18n.js"></script>
   <script src="../lib/core.js"></script>
   <script src="../ui/ui.js"></script>
   <script src="../ui/tables.js"></script>
