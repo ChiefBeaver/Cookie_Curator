@@ -1,6 +1,8 @@
 "use strict";
 (async function () {
   const { el } = UI;
+  await I18N.init();
+  I18N.apply();
   const cfg = await CC.loadConfig();
   CC.setExtraSuffixes(cfg.settings.extraSuffixes);
 

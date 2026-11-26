@@ -15,6 +15,7 @@ let logDirty = false;
 /* ------------------------------------------------------------------ */
 
 const ready = (async function init() {
+  await I18N.init();
   config = await CC.loadConfig();
   CC.setExtraSuffixes(config.settings.extraSuffixes);
   const r = await browser.storage.local.get(CC.LOG_KEY);

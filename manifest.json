@@ -27,6 +27,7 @@
   ],
   "background": {
     "scripts": [
+      "lib/i18n.js",
       "lib/core.js",
       "lib/pagefns.js",
       "background.js"

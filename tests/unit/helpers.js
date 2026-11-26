@@ -9,11 +9,20 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const read = rel => fs.readFileSync(path.join(ROOT, rel), "utf8");
 
 /* lib/core.js laden → CC */
-function loadCore() {
-  const ctx = { self: {}, console, URL };
+/* Übersetzungen in einen VM-Kontext laden; Standardsprache der Tests ist Deutsch */
+const I18N_FILES = ["lib/i18n.js", ...fs.readdirSync(path.join(ROOT, "locales")).sort().map(f => "locales/" + f)];
+function loadI18n(ctx, lang = "de") {
+  for (const f of I18N_FILES) vm.runInContext(read(f), ctx, { filename: f });
+  vm.runInContext("I18N", ctx).setLang(lang);
+}
+
+function loadCore(lang) {
+  const ctx = { self: {}, console, URL, Intl };
+  ctx.self = ctx;
   vm.createContext(ctx);
+  loadI18n(ctx, lang);
   vm.runInContext(read("lib/core.js"), ctx, { filename: "lib/core.js" });
-  return ctx.self.CC;
+  return ctx.CC;
 }
 
 /* Ereignis-Attrappe wie browser.*.onX */
@@ -76,17 +85,19 @@ function loadBackground({ cookies = [], tabs = [] } = {}) {
     },
     contentScripts: { register: async o => ({ unregister: async () => {} }) },
     browsingData: { remove: async (o, t) => { state.browsingData.push({ o, t }); }, removeCookies: async () => {} },
+    i18n: { getUILanguage: () => "de" },
     runtime: { onStartup: event(), onInstalled: event(), onMessage: event(), openOptionsPage() {} },
     alarms: { clear() {}, create() {}, onAlarm: event() },
     browserAction: { setBadgeText() {}, setBadgeBackgroundColor() {}, setTitle() {} }
   };
   const ctx = {
-    browser, console, URL,
+    browser, console, URL, Intl,
     setTimeout: (f) => { state.timers.push(f); return state.timers.length; },
     clearTimeout() {}
   };
   ctx.self = ctx;
   vm.createContext(ctx);
+  loadI18n(ctx);
   for (const f of ["lib/core.js", "lib/pagefns.js", "background.js"]) vm.runInContext(read(f), ctx, { filename: f });
   const tick = () => new Promise(r => setImmediate(r));
   return {
