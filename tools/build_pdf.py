@@ -36,7 +36,13 @@ def mermaid(code):
     open(src, "w", encoding="utf-8").write(code)
     cfg = os.path.join(W, "mcfg.json")
     open(cfg, "w", encoding="utf-8").write('{"theme":"neutral","themeVariables":{"fontFamily":"DejaVu Sans","fontSize":"14px"},"flowchart":{"htmlLabels":false}}')
-    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q"], check=True)
+    extra = []
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        # Chrome startet als root (z. B. in Containern) nur ohne Sandbox
+        pcfg = os.path.join(W, "pcfg.json")
+        open(pcfg, "w", encoding="utf-8").write('{"args":["--no-sandbox"]}')
+        extra = ["-p", pcfg]
+    subprocess.run(MMDC + ["-i", src, "-o", dst, "-c", cfg, "-b", "white", "-q"] + extra, check=True)
     svg = open(dst, "rb").read()
     return f'<div class="diagram"><img src="data:image/svg+xml;base64,{base64.b64encode(svg).decode()}"/></div>'
 

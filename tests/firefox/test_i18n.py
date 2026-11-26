@@ -86,6 +86,8 @@ def help_per_language(h):
 
 
 TESTS = [
-    ("Standard Deutsch, Sprachknopf, Fenster und Hintergrund folgen", default_and_switch, {}),
+    # Firefox ausdrücklich englisch, damit sicher ist, dass die Browsersprache keine Rolle spielt
+    ("Standard Deutsch, Sprachknopf, Fenster und Hintergrund folgen", default_and_switch,
+     {"prefs": {"intl.locale.requested": "en-US", "intl.accept_languages": "en-US, en"}}),
     ("Hilfe pro Sprache", help_per_language, {}),
 ]
