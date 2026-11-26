@@ -28,8 +28,9 @@ The XPI is not in the Git repository; build it with `python tools/build_xpi.py`.
 - Git repository in the main folder (branch `main`).
 - Tests: `tests/README.md` – unit tests (Node), UI tests (Playwright) and
   integration tests in real Firefox (Python/Selenium) including local test servers.
-- Technical documentation: `docs/` (in German; rebuild the PDF with `python tools/build_pdf.py`), also as a
-  [wiki](https://github.com/ChiefBeaver/Cookie_Curator/wiki) – updated automatically on every change to `docs/`.
+- Technical documentation: `docs/` (in German), also as a [wiki](https://github.com/ChiefBeaver/Cookie_Curator/wiki)
+  with a PDF download – both are rebuilt automatically on every change to `docs/` (`.github/workflows/wiki.yml`).
+  Build the PDF locally with `python tools/build_pdf.py`; it is not stored in the repository.
 - CI: GitHub Actions runs all tests on every push in a prepared Docker image
   (`.github/workflows/ci.yml`); a tag such as `v0.8.0` creates a release with the XPI.
 
@@ -155,9 +156,9 @@ options/             dashboard
 page/cache-purge.js  deletes Cache Storage on the next page visit
 locales/             interface texts per language (en.js, de.js), help in locales/help/
 _locales/            description in the add-ons manager (read by Firefox itself)
-docs/                technical documentation (Markdown and PDF, German)
+docs/                technical documentation (Markdown, German; PDF and wiki are generated)
 tests/               tests and test environment (instructions: tests/README.md)
-tools/               build_xpi.py, build_pdf.py
+tools/               build_xpi.py, build_pdf.py, docs_to_wiki.py
 icons/icon.svg
 ```
 

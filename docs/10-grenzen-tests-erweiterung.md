@@ -152,6 +152,10 @@ Die Kapitel heissen dort nach ihrer Überschrift (z. B. „01 Architektur“), `
 Startseite, dazu kommen eine Seitenleiste und ein Hinweis auf die Quelle. Bearbeitet wird immer
 hier in `docs/`; direkte Änderungen im Wiki überschreibt der nächste Abgleich.
 
+Der Workflow erzeugt dabei auch das PDF der ganzen Dokumentation (`tools/build_pdf.py`) und legt
+es ins Wiki; Startseite und Seitenleiste verlinken es. Im Repository liegt kein PDF. Lokal erzeugen:
+`python tools/build_pdf.py [AUSGABE.pdf]`.
+
 ## 10.6 Paketieren, Signieren, Installieren
 
 * **Paket:** `python tools/build_xpi.py` erzeugt `cookie-curator.xpi`. Inhalt: `manifest.json`,

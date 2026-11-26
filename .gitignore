@@ -5,8 +5,9 @@ __pycache__/
 *.pyc
 .venv/
 
-# Build-Ergebnis (mit tools/build_xpi.py neu erzeugen)
+# Build-Ergebnisse (tools/build_xpi.py, tools/build_pdf.py)
 *.xpi
+*.pdf
 
 # Betriebssystem
 .DS_Store

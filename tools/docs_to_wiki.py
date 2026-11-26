@@ -13,6 +13,8 @@ Was das Skript macht:
 * Links zwischen Kapiteln (02-datenmodell.md#abschnitt) werden zu Wiki-Links (02-Datenmodell#abschnitt).
 * _Sidebar.md (Kapitelliste) und _Footer.md (Hinweis auf die Quelle) werden erzeugt.
 * Mermaid-Diagramme bleiben unverändert; GitHub zeichnet sie auch im Wiki.
+* Das PDF (tools/build_pdf.py, im Workflow erzeugt) liegt als Datei PDF_NAME im Wiki;
+  Startseite und Seitenleiste verlinken es dort.
 """
 import os
 import re
@@ -23,6 +25,8 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 REPO_URL = os.environ.get("REPO_URL", "https://github.com/ChiefBeaver/Cookie_Curator")
 BRANCH = os.environ.get("REPO_BRANCH", "main")
+PDF_NAME = "Cookie-Curator-Dokumentation.pdf"
+PDF_URL = f"{REPO_URL}/wiki/{PDF_NAME}"
 
 
 def title_of(md_file: Path) -> str:
@@ -53,7 +57,7 @@ def main(out_dir: str) -> None:
             target, anchor = m.group(1), m.group(2) or ""
             if target in names:
                 return f"]({names[target]}{anchor})"
-            # andere Dateien im docs-Ordner (z. B. das PDF) → Datei im Repository
+            # andere Dateien im docs-Ordner → Datei im Repository
             if (DOCS / target).exists():
                 return f"]({REPO_URL}/blob/{BRANCH}/docs/{target}{anchor})"
             return m.group(0)
@@ -64,7 +68,7 @@ def main(out_dir: str) -> None:
         if src.name == "README.md":
             text = text.replace(
                 "## Inhalt",
-                f"Die gesamte Dokumentation gibt es auch als [PDF]({REPO_URL}/blob/{BRANCH}/docs/Cookie-Curator-Dokumentation.pdf).\n\n## Inhalt",
+                f"Die gesamte Dokumentation gibt es auch als [PDF]({PDF_URL}).\n\n## Inhalt",
                 1)
         (out / f"{names[src.name]}.md").write_text(text, encoding="utf-8")
 
@@ -72,7 +76,7 @@ def main(out_dir: str) -> None:
     for c in chapters:
         n = names[c.name]
         sidebar.append(f"* [{title_of(c)}]({n})")
-    sidebar += ["", f"[PDF herunterladen]({REPO_URL}/blob/{BRANCH}/docs/Cookie-Curator-Dokumentation.pdf)"]
+    sidebar += ["", f"[PDF herunterladen]({PDF_URL})"]
     (out / "_Sidebar.md").write_text("\n".join(sidebar) + "\n", encoding="utf-8")
 
     (out / "_Footer.md").write_text(

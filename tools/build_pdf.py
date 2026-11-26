@@ -1,8 +1,11 @@
-"""Erzeugt docs/Cookie-Curator-Dokumentation.pdf aus den Markdown-Kapiteln in docs/.
+"""Erzeugt das PDF der Dokumentation aus den Markdown-Kapiteln in docs/.
 
     pip install markdown playwright && python -m playwright install chromium
     npm install -g @mermaid-js/mermaid-cli      (für die Diagramme; sonst wird npx verwendet)
-    python tools/build_pdf.py
+    python tools/build_pdf.py [AUSGABE.pdf]     (Standard: Cookie-Curator-Dokumentation.pdf im Hauptordner)
+
+Das PDF liegt nicht im Repository: .github/workflows/wiki.yml erzeugt es bei jeder Änderung an
+docs/ und legt es ins Wiki (Download über die Seitenleiste und die Startseite des Wikis).
 """
 import re, os, subprocess, base64, html, sys, json, shutil, tempfile, datetime
 from pathlib import Path
@@ -11,7 +14,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = str(ROOT / "docs")
-OUT = os.path.join(DOCS, "Cookie-Curator-Dokumentation.pdf")
+OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else str(ROOT / "Cookie-Curator-Dokumentation.pdf")
 W = tempfile.mkdtemp(prefix="cc-pdf-")
 VERSION = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))["version"]
 TODAY = datetime.date.today().strftime("%d.%m.%Y")
