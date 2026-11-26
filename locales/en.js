@@ -564,5 +564,11 @@ I18N.register("en", {
   "bk.resetButton": "Reset to defaults",
   "bk.resetConfirm": "Really reset everything?",
   "bk.resetDone": "Reset done",
-  "help.title": "How it works"
+  "help.title": "How it works",
+
+  /* Popup und Spaltenbreiten (popup/popup.js, ui/tables.js) */
+  "popup.noSite": "This page has no cookies or site data (e.g. about:, extension or file page).",
+  "popup.noSiteHint": "You will find all sites and global settings in the dashboard.",
+  "popup.cookiesFor": "Cookies for ",
+  "tables.resizeTitle": "Drag: change column width · Double-click: reset widths"
 });

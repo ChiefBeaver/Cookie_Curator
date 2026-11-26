@@ -23,14 +23,14 @@
 
   if (!site) {
     main.append(el("div", { class: "nosite" },
-      el("p", {}, "Diese Seite hat keine Cookies oder Website-Daten (z. B. about:, Erweiterungs- oder Dateiseite)."),
-      el("p", {}, "Alle Seiten und globale Einstellungen findest du im Dashboard.")));
+      el("p", {}, I18N.t("popup.noSite")),
+      el("p", {}, I18N.t("popup.noSiteHint"))));
     return;
   }
 
   const host = CC.hostFromUrl(tab.url);
   title.textContent = "";
-  title.append("Cookies für ", el("code", {}, site), host !== site ? el("span", { class: "dim", style: "font-weight:400;font-size:12px" }, "  (" + host + ")") : null);
+  title.append(I18N.t("popup.cookiesFor"), el("code", {}, site), host !== site ? el("span", { class: "dim", style: "font-weight:400;font-size:12px" }, "  (" + host + ")") : null);
 
   const editor = new UI.SiteEditor(main, { site, compact: true });
   await editor.init();

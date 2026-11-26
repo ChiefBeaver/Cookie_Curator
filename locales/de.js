@@ -563,5 +563,11 @@ I18N.register("de", {
   "bk.resetButton": "Auf Standard zurücksetzen",
   "bk.resetConfirm": "Wirklich alles zurücksetzen?",
   "bk.resetDone": "Zurückgesetzt",
-  "help.title": "Funktionsweise"
+  "help.title": "Funktionsweise",
+
+  /* Popup und Spaltenbreiten (popup/popup.js, ui/tables.js) */
+  "popup.noSite": "Diese Seite hat keine Cookies oder Website-Daten (z. B. about:, Erweiterungs- oder Dateiseite).",
+  "popup.noSiteHint": "Alle Seiten und globale Einstellungen findest du im Dashboard.",
+  "popup.cookiesFor": "Cookies für ",
+  "tables.resizeTitle": "Ziehen: Spaltenbreite ändern · Doppelklick: Breiten zurücksetzen"
 });
