@@ -64,7 +64,7 @@ page/cache-purge.js      Löscht Cache Storage beim nächsten Seitenaufruf (Welt
 icons/icon.svg           Symbol
 docs/                    Diese Dokumentation (wird nicht ins XPI gepackt)
 tests/                   Einheiten-, Oberflächen- und Firefox-Tests mit Testumgebung (siehe 10.3)
-tools/                   build_xpi.py (Paket erzeugen), build_pdf.py (PDF dieser Doku erzeugen)
+tools/                   build_xpi.py (Paket), build_pdf.py (PDF dieser Doku), docs_to_wiki.py (Wiki)
 ```
 
 Grösse: rund 4300 Zeilen JavaScript/CSS/HTML, **ohne externe Bibliotheken**.

@@ -28,7 +28,8 @@ Die XPI ist nicht im Git-Repository; erzeugen mit `python tools/build_xpi.py`.
 - Git-Repository im Hauptordner (Zweig `main`).
 - Tests: `tests/README.md` – Einheitentests (Node), Oberflächentests (Playwright) und
   Integrationstests in echtem Firefox (Python/Selenium) samt lokalen Testservern.
-- Technische Dokumentation: `docs/` (PDF neu erzeugen: `python tools/build_pdf.py`).
+- Technische Dokumentation: `docs/` (PDF neu erzeugen: `python tools/build_pdf.py`), auch als
+  [Wiki](https://github.com/ChiefBeaver/Cookie_Curator/wiki) – wird bei jeder Änderung an `docs/` automatisch aktualisiert.
 - CI: GitHub Actions führt bei jedem Push alle Tests in einem vorbereiteten Docker-Image aus
   (`.github/workflows/ci.yml`); ein Tag wie `v0.8.0` erzeugt ein Release mit der XPI.
 

@@ -144,7 +144,15 @@ Firefox für Android nicht gesetzt (Add-on ist für Desktop gedacht).
   Einträge erst kurz nach dem Laden entfernt werden.
 * Host-Berechtigungen als `optional_host_permissions` anfragen.
 
-## 10.5 Paketieren, Signieren, Installieren
+## 10.5 Wiki
+
+Das GitHub-Wiki des Repositorys wird aus diesem Ordner erzeugt (`tools/docs_to_wiki.py`, Workflow
+`.github/workflows/wiki.yml`): Jede Änderung an `docs/` auf `main` aktualisiert das Wiki automatisch.
+Die Kapitel heissen dort nach ihrer Überschrift (z. B. „01 Architektur“), `README.md` wird zur
+Startseite, dazu kommen eine Seitenleiste und ein Hinweis auf die Quelle. Bearbeitet wird immer
+hier in `docs/`; direkte Änderungen im Wiki überschreibt der nächste Abgleich.
+
+## 10.6 Paketieren, Signieren, Installieren
 
 * **Paket:** `python tools/build_xpi.py` erzeugt `cookie-curator.xpi`. Inhalt: `manifest.json`,
   `background.js`, `lib/`, `ui/`, `popup/`, `options/`, `icons/`, `page/`, `LICENSE` – **ohne** `docs/`,

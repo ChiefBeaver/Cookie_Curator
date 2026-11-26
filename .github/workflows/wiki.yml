@@ -1,0 +1,65 @@
+# Wiki aus docs/ aktualisieren
+#
+# Bei jeder Änderung an docs/ (oder am Umwandlungsskript) auf main erzeugt
+# tools/docs_to_wiki.py die Wiki-Seiten neu und lädt sie ins GitHub-Wiki hoch.
+# Das Wiki ist damit immer eine Kopie von docs/; Änderungen direkt im Wiki werden überschrieben.
+#
+# Voraussetzung (einmalig von Hand): Im Repository unter "Wiki" eine erste Seite anlegen.
+# Erst dann existiert das Wiki-Repository, in das dieser Workflow schreiben kann.
+
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "tools/docs_to_wiki.py"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # das Wiki gehört zum Repository; Schreiben braucht dieses Recht
+
+jobs:
+  publish:
+    name: Wiki aktualisieren
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wiki-Seiten erzeugen
+        run: python3 tools/docs_to_wiki.py "$RUNNER_TEMP/wiki-neu"
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          REPO_BRANCH: ${{ github.ref_name }}
+
+      - name: Wiki-Repository holen
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git clone --depth 1 "$url" "$RUNNER_TEMP/wiki" 2> "$RUNNER_TEMP/clone.log"; then
+            echo "::error::Das Wiki-Repository existiert noch nicht. Im Repository auf 'Wiki' klicken, eine erste Seite anlegen (Inhalt egal) und diesen Workflow danach erneut starten (Actions → Wiki → Run workflow)."
+            exit 1
+          fi
+
+      - name: Seiten ersetzen und hochladen
+        working-directory: ${{ runner.temp }}/wiki
+        run: |
+          # alles ausser der Git-Verwaltung entfernen: gelöschte Kapitel verschwinden auch im Wiki
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$RUNNER_TEMP/wiki-neu/." .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki ist bereits aktuell."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Wiki aus docs/ aktualisiert (${GITHUB_SHA::7})"
+          git push
